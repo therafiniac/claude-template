@@ -180,7 +180,7 @@ The plugin knows these building blocks:
 |---|---|
 | Framework | `nextjs` (public and SEO sites), `astro` (blogs, docs, marketing sites), `react-spa` (React frontend for an API that already exists), `react-express` (React plus Express in one repo, for apps behind login), `wordpress` (custom themes and plugins) |
 | Database | `mongodb`, `postgres` |
-| Capabilities | `styling` (Tailwind, typography, plain CSS), `icons` (Lucide, Simple Icons, Iconify, Heroicons, Phosphor), `cms` (none, Keystatic, Decap, Sanity, Payload), `search` (Pagefind, Postgres full-text, Meilisearch, Algolia) |
+| Capabilities | `styling` (Tailwind, typography, plain CSS), `ui-components` (shadcn, React Aria, daisyUI), `icons` (Lucide, Simple Icons, Iconify, Heroicons, Phosphor), `fonts` (Astro Fonts, next/font, Fontsource, system), `cms` (none, Keystatic, Decap, Sanity, Payload), `search` (Pagefind, Postgres full-text, Meilisearch, Algolia), `forms` (server endpoint, Turnstile, Web3Forms, Formspree), `auth` (Better Auth, Clerk), `email` (Resend, Postmark, SES, SMTP), `analytics` (Umami, Plausible, Cloudflare, PostHog), `payments` (Stripe, Razorpay, Paddle) |
 
 You pick one framework and one database. Next.js with Postgres, Next.js with MongoDB, and React with Express and MongoDB (MERN) are all just combinations. `astro`, `react-spa`, and `wordpress` usually need no database profile: answer "none" when asked. Capabilities are proposed for you with a default per framework. You confirm or swap them.
 
@@ -500,7 +500,7 @@ You will also rewrite the `.github/workflows/` files for that language.
 | Commit blocked: gitleaks found a secret | Remove the secret from the file, put it in `.env`, and if it was ever pushed, rotate it |
 | Commit rejected by commitlint | Use `type: description`, for example `feat: add tag page` |
 | `pnpm: command not found` | Install pnpm (section 4) and open a new terminal |
-| pnpm says a package's build script was ignored | Run `pnpm approve-builds` and allow the package |
+| pnpm says a package's build script was ignored | If you trust the package, run `pnpm approve-builds <package>` (or `pnpm approve-builds` to choose interactively). The approval is saved in `pnpm-workspace.yaml` |
 | `pnpm check` fails right after bootstrap | Paste the error into Claude and ask it to fix it |
 | `pnpm build` fails on env validation | Fix `.env.example` so its values pass validation |
 | The Stop hook keeps blocking Claude | Fix the type error it reports. It retries once per turn and cannot loop |
