@@ -6,7 +6,7 @@
 - Test: `pnpm test` (single: `pnpm test <path>`)
 - Typecheck: `pnpm typecheck` | Lint: `pnpm lint`
 - All checks: `pnpm check`. Run before declaring any task done.
-- E2E + accessibility: `pnpm test:e2e` | Lighthouse: `pnpm lighthouse` (CI runs both)
+- E2E + accessibility: `pnpm test:e2e` | Lighthouse: `pnpm lighthouse` (run these yourself; nothing runs them automatically)
 
 ## Architecture
 <Filled by /rafi:bootstrap-project from docs/stack-profile.md.>

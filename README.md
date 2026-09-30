@@ -33,7 +33,7 @@ You do not need to know Claude Code, plugins, or CI to use this. Follow the sect
 Think of it as a workshop that is already set up. Every project you build starts with the same:
 - **Rules for Claude** (`CLAUDE.md` and `.claude/rules/`): how to write code, what to test, what never to do.
 - **Guard rails**: Claude cannot read your `.env` secrets, force-push, or run `rm -rf`. Every commit is scanned for leaked secrets and must have a proper message.
-- **Automatic checks on GitHub** (CI): type check, lint, tests, build, browser tests, speed test, secret scan, dependency scan.
+- **Checks you run yourself**: type check, lint, tests, build, browser tests, speed test (`pnpm check` and the scripts in section 12). A local secret scan runs on commit (gitleaks). Nothing runs automatically on GitHub.
 - **Folders for planning**: `docs/prd/` for what to build, `docs/architecture.md` for how it is built, `docs/adr/` for why you chose things.
 - **A set of `/rafi:` commands** (from your plugin) that run the whole process: plan, build a piece, review, audit, ship.
 
@@ -54,7 +54,7 @@ Think of it as a workshop that is already set up. Every project you build starts
 | Piece | What it holds | You touch it when |
 |---|---|---|
 | **Plugin** (`claude-plugins` repo) | The `/rafi:` commands, the five audit standards, the agents, the hooks, the stack profiles | You want to improve your toolkit. Everything updates in all projects |
-| **Template** (this repo) | Project rules, permissions, CI, git hooks, docs folders | You want to change what every new project starts with |
+| **Template** (this repo) | Project rules, permissions, git hooks, docs folders | You want to change what every new project starts with |
 | **Personal defaults** (`~/.claude/`) | How Claude talks to you, plus a block on reading secrets | Once per computer |
 
 ## 3. Words you will see
@@ -145,9 +145,6 @@ claude plugin install rafi@rafi-tools
 ```
 Restart Claude Code. Type `/rafi:` and you should see the commands. This works in every project on this computer. See the plugin repo's README for details.
 
-### 5.4 Stop check-failure emails from this template repo
-This repo has workflows but no code, so its checks always fail. On GitHub open this repo → **Settings → Actions → General → Disable actions**. New projects are not affected.
-
 ## 6. Start a new project
 
 ### 6.1 Copy the template into a new folder
@@ -233,7 +230,7 @@ Do this when you want a backup, want CI to run, or want to deploy.
    git remote add origin git@github.com:therafiniac/my-blog.git
    git push -u origin main
    ```
-3. Open the **Actions** tab. The checks run on every push. Green is good. Red means read the failed step (section 11).
+3. Nothing runs automatically. Run `pnpm check` (and `pnpm test:e2e` / `pnpm lighthouse` if you want them) yourself, before and after you push.
 
 That is all. There are no secrets, branch rules, or other GitHub settings to configure.
 
@@ -327,11 +324,7 @@ Repeat 8.4 to 8.6 until the feature is done.
 ```bash
 git push -u origin feat/tag-pages
 ```
-On GitHub you will see a **Compare & pull request** button. Click it, then **Create pull request**. The checks run on the PR page.
-- All green: click **Merge pull request**, then **Delete branch**.
-- Red: click the failed check, read the error, fix it in Claude, commit, and push again.
-
-GitHub will let you merge even when checks are red, because no branch rules are set. **Look before you click.** For a solo project, you are the gate. If you want to skip pull requests for small changes, merge locally with `git switch main`, `git merge feat/tag-pages`, `git push`.
+On GitHub you will see a **Compare & pull request** button. Click it, then **Create pull request**. There are no automated checks on the PR — run `pnpm check` yourself first. **You are the gate.** Merge when you're satisfied, then **Delete branch**. If you want to skip pull requests for small changes, merge locally with `git switch main`, `git merge feat/tag-pages`, `git push`.
 
 Finally, update your computer:
 ```bash
@@ -424,22 +417,8 @@ The code reviewer, security auditor, and test writer agents and the two hooks ru
 | `.claude/settings.json` | Blocks reading `.env` and secrets, force-push, `rm -rf` | A guard rail, not a sandbox |
 | Plugin hooks | Formats each edited file, runs a type check when Claude finishes a turn | Automatic |
 | Commit hooks (`.husky/`) | Secret scan, lint and format staged files, message format | Blocks the commit on your computer |
-| GitHub checks (CI) | Type check, lint, tests, build, browser tests, speed test, secret scan, dependency scan | Reports on every push. Does not block merges |
 
-Anything that must never happen belongs in a hook or a check, not only in `CLAUDE.md`.
-
-### Reading a failed check
-On GitHub open the **Actions** tab (or the PR's **Checks**), click the red run, click the failed job, and open the step with the red cross. The last lines say what went wrong.
-
-| Failed check | Usual cause |
-|---|---|
-| `verify` | A type error, lint error, failing test, or build error. Run `pnpm check` and `pnpm build` locally |
-| `secrets` | A secret was committed. Rotate it, then remove it from the history |
-| `dependencies` | A package has a known high-severity vulnerability. Update it. If none is available, note why |
-| `e2e` | A browser test failed. Run `pnpm test:e2e` locally |
-| `lighthouse` | A page missed the speed, SEO, or accessibility thresholds. Run `pnpm lighthouse` locally |
-
-`e2e` and `lighthouse` pass by doing nothing until the project has the `test:e2e` and `lighthouse` scripts.
+Anything that must never happen belongs in a hook or a check, not only in `CLAUDE.md`. There is no GitHub-side check anymore — run `pnpm check`, `pnpm test:e2e`, and `pnpm lighthouse` yourself when you want them.
 
 ## 12. Scripts, tools, and other stacks
 
@@ -472,9 +451,6 @@ You will also rewrite the `.github/workflows/` files for that language.
 | `.claude/rules/testing.md` | Test rules, loaded only when Claude touches test files | Yes |
 | `.husky/pre-commit`, `.husky/commit-msg` | Commit hooks | Rarely |
 | `commitlint.config.cjs`, `.lintstagedrc.json` | Commit message rule, files to lint and format at commit time | Rarely |
-| `.github/workflows/ci.yml` | Type check, lint, test, build | When the stack changes |
-| `.github/workflows/security.yml` | Secret scan and dependency scan | Rarely |
-| `.github/workflows/e2e.yml`, `lighthouse.yml` | Browser and speed tests. Skip themselves until the scripts exist | When the stack changes |
 | `.github/dependabot.yml` | Weekly package update pull requests | Rarely |
 | `.github/pull_request_template.md` | Checklist shown on every pull request | Yes |
 | `.github/CODEOWNERS` | Who owns the code | Yes |
@@ -510,12 +486,10 @@ You will also rewrite the `.github/workflows/` files for that language.
 | `pnpm: command not found` | Install pnpm (section 4) and open a new terminal |
 | pnpm says a package's build script was ignored | Run `pnpm approve-builds` and allow the package |
 | `pnpm check` fails right after bootstrap | Paste the error into Claude and ask it to fix it |
-| Every check is red on a brand-new repo | Normal until the scaffolded project is pushed. The checks need `package.json` and a lockfile |
-| `verify` fails on env validation | Fix `.env.example` so its values pass validation |
+| `pnpm build` fails on env validation | Fix `.env.example` so its values pass validation |
 | The Stop hook keeps blocking Claude | Fix the type error it reports. It retries once per turn and cannot loop |
-| Claude keeps ignoring a rule | The rule is too long or should be enforced. Shorten `CLAUDE.md`, or turn the rule into a hook, lint rule, or CI check |
+| Claude keeps ignoring a rule | The rule is too long or should be enforced. Shorten `CLAUDE.md`, or turn the rule into a hook or lint rule |
 | Claude asks for permission on every command | Add the command to the `allow` list in `.claude/settings.json` |
-| Emails about failed checks from the template repo | Disable Actions on that repo (5.4) |
 
 ## 17. FAQ
 
@@ -543,7 +517,7 @@ You will also rewrite the `.github/workflows/` files for that language.
 
 ## 18. Known caveats
 
-- The GitHub Action versions in `.github/workflows/` come from recent Dependabot data. Confirm them, then pin them to commit SHAs. Dependabot keeps them updated.
-- gitleaks `git --pre-commit --staged` has a reported bug (issue #2281) that can miss staged secrets. The scan in CI is the backstop.
+- gitleaks `git --pre-commit --staged` has a reported bug (issue #2281) that can miss staged secrets. There is no CI scan as a backstop anymore, so a missed secret depends on you catching it before or after push.
+- There is no automated check on Dependabot PRs. Read the diff and run `pnpm check` locally before merging one.
 - The Stop hook, the forked audit skills, and plugin loading were validated structurally and by script tests, not over a long live session. Watch them in your first real project.
 - `CODEOWNERS` and `.claude/settings.json` mention `therafiniac`. Change both if your GitHub username changes.
