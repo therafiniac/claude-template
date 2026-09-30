@@ -175,10 +175,10 @@ The plugin knows these building blocks:
 
 | Kind | Available |
 |---|---|
-| Framework | `nextjs` (public and SEO sites), `react-express` (apps behind login) |
+| Framework | `nextjs` (public and SEO sites), `astro` (blogs, docs, marketing sites), `react-spa` (React frontend for an API that already exists), `react-express` (React plus Express in one repo, for apps behind login), `wordpress` (custom themes and plugins) |
 | Database | `mongodb`, `postgres` |
 
-You pick one framework and one database. Next.js with Postgres, Next.js with MongoDB, and React with Express and MongoDB (MERN) are all just combinations.
+You pick one framework and one database. Next.js with Postgres, Next.js with MongoDB, and React with Express and MongoDB (MERN) are all just combinations. `astro`, `react-spa`, and `wordpress` usually need no database profile: answer "none" when asked.
 
 **Something else, like Django or MySQL?** Create the profile first:
 ```
