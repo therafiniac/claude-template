@@ -25,6 +25,7 @@
 2. `/rafi:plan-feature <name>`: explore and plan. Wait for approval.
 3. `/rafi:slice <name>`: implement one vertical slice with tests, checks, review, and audits.
 4. `/rafi:fix-issue <description>`: failing test first, then the fix.
+   `/rafi:add-capability <concern>`: add icons, CMS, search, and so on. Records the choice in `docs/stack-profile.md` and an ADR.
 5. `/rafi:release-check`: full gate before shipping.
 6. `/rafi:retro`: end of session. Turn corrections into rules.
 

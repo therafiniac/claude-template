@@ -167,23 +167,32 @@ Quick checks:
 1. Type `/rafi:`. You should see `bootstrap-project`, `plan-feature`, `slice`, and more.
 2. Ask: "read the .env file". Claude must refuse. If it does not, stop and fix `.claude/settings.json`.
 
-### 6.3 Is your stack in the list?
+### 6.3 Only have an idea, not a stack?
+```
+/rafi:brainstorm portfolio site for a sanskrit teacher
+```
+Claude asks about users, main flows, who edits content, and your budget and constraints, a few questions at a time. It proposes 2–3 approaches, then a full stack table: framework, database, hosting, and every capability (styling, icons, CMS, search, …) with alternatives. It writes `docs/brainstorm.md` and no code. Bootstrap then reads that file instead of asking again. Skip this step if you already know your stack.
+
+### 6.4 Is your stack in the list?
 The plugin knows these building blocks:
 
 | Kind | Available |
 |---|---|
 | Framework | `nextjs` (public and SEO sites), `astro` (blogs, docs, marketing sites), `react-spa` (React frontend for an API that already exists), `react-express` (React plus Express in one repo, for apps behind login), `wordpress` (custom themes and plugins) |
 | Database | `mongodb`, `postgres` |
+| Capabilities | `styling` (Tailwind, typography, plain CSS), `icons` (Lucide, Simple Icons, Iconify, Heroicons, Phosphor), `cms` (none, Keystatic, Decap, Sanity, Payload), `search` (Pagefind, Postgres full-text, Meilisearch, Algolia) |
 
-You pick one framework and one database. Next.js with Postgres, Next.js with MongoDB, and React with Express and MongoDB (MERN) are all just combinations. `astro`, `react-spa`, and `wordpress` usually need no database profile: answer "none" when asked.
+You pick one framework and one database. Next.js with Postgres, Next.js with MongoDB, and React with Express and MongoDB (MERN) are all just combinations. `astro`, `react-spa`, and `wordpress` usually need no database profile: answer "none" when asked. Capabilities are proposed for you with a default per framework. You confirm or swap them.
 
 **Something else, like Django or MySQL?** Create the profile first:
 ```
 /rafi:add-stack Django
 ```
-Claude interviews you, reads the official documentation, drafts a profile, and waits for your approval. Then continue with 6.4 and give it the draft path when asked.
+Claude interviews you, reads the official documentation, drafts a profile, and waits for your approval. Then continue with 6.5 and give it the draft path when asked.
 
-### 6.4 Build the base project
+**A library that is not in the capabilities, like a payment provider?** Run `/rafi:add-capability payments`. It drafts the capability the same way.
+
+### 6.5 Build the base project
 ```
 /rafi:bootstrap-project blog website
 ```
@@ -200,18 +209,22 @@ The words after the command are just your idea in a few words. Claude asks these
 | Database name | `my_blog` |
 | Non-goals | No comments, newsletter, or multiple authors |
 
+If you ran `/rafi:brainstorm`, it asks only what `docs/brainstorm.md` leaves out.
+
+Next Claude shows a **capabilities table**: styling, icons, CMS, search, and so on, each with a proposed option and alternatives that fit your framework. Confirm or swap.
+
 Then Claude shows a **scaffold plan**: folders, packages with a reason for each, scripts. **Read it and approve or change it.** Nothing is written before you approve.
 
 After approval Claude creates the project, fills `CLAUDE.md`, writes your stack profile into `docs/stack-profile.md`, replaces this README with a project README, writes `docs/architecture.md` and a first decision record, and asks you the PRD questions: who uses it, what is in and out, and what "done" means. It does not invent your answers. Finally it installs packages, turns on the commit hooks, and runs the checks.
 
-### 6.5 Check that it works
+### 6.6 Check that it works
 ```bash
 pnpm check
 pnpm dev
 ```
 Open http://localhost:3000. If `pnpm check` fails, paste the error into Claude and ask it to fix it.
 
-### 6.6 First commit
+### 6.7 First commit
 ```bash
 git add -A
 git commit -m "chore: scaffold project"
@@ -392,8 +405,10 @@ Claude looks at your corrections and repeated instructions and proposes rules to
 
 | Situation | Command |
 |---|---|
+| An idea, but no stack decided | `/rafi:brainstorm <idea>` |
 | Starting a project | `/rafi:bootstrap-project <idea>` |
-| Your stack is not in the list | `/rafi:add-stack <name>` first |
+| Your framework or database is not in the list | `/rafi:add-stack <name>` first |
+| Adding icons, CMS, search, and so on later, or a library not in the catalog | `/rafi:add-capability <concern>` |
 | Planning a feature | `/rafi:plan-feature <name>` |
 | Building a piece | `/rafi:slice <name>` (runs review and audits for you) |
 | A bug | `/rafi:fix-issue <description>` |
@@ -457,7 +472,8 @@ You will also rewrite the `.github/workflows/` files for that language.
 | `docs/prd/` | Feature specs. `_template.md` is the starting point | Yes |
 | `docs/architecture.md` | How the system is built | Yes |
 | `docs/adr/` | Records of why you chose things | Yes |
-| `docs/stack-profile.md` | Created by bootstrap. The audits read it | Yes |
+| `docs/brainstorm.md` | Created by `/rafi:brainstorm`. Bootstrap reads it | Yes |
+| `docs/stack-profile.md` | Created by bootstrap, extended by add-capability. The audits read it | Yes |
 | `docs/audits/` | Created by the audits. Findings logs | Read only |
 
 ## 14. Using the template in an existing repo
