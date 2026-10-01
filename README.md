@@ -318,7 +318,16 @@ git switch -c feat/lesson-tags
 Your own line of work. `main` keeps working while you build.
 
 ### 7.2 Write the spec
-Copy `docs/prd/_template.md` to `docs/prd/lesson-tags.md` and fill it in. Half a page is enough:
+```
+/rafi:spec lesson tags
+```
+Claude first asks how you want to do it:
+- **A) Claude asks you questions** in plain language (what problem it solves, who uses it, what's in and out, what the user sees, what happens when things go wrong), then writes the spec. Any "done" rule you didn't say yourself is marked **(proposed)** for you to keep, change, or remove.
+- **B) You fill it in yourself.** Claude creates `docs/prd/lesson-tags.md` with hints in each section and waits. When you say "done", it reviews your spec and points out vague or missing "done" rules.
+
+**You don't need to know the code to write a spec.** The spec says *what the visitor sees*, not *how it's built*. Like ordering a cake: you say "chocolate, two layers, 'Happy Birthday' on top" without knowing the recipe. The recipe is the plan (7.3), and Claude writes that. Each "done" rule is something you could check yourself by clicking around the finished site.
+
+Either way, you end up with a half-page file like this:
 ```md
 # PRD: Lesson tags
 ## Users
@@ -487,6 +496,7 @@ Claude looks at what you had to correct or repeat, and proposes up to seven rule
 | Start a project | `/rafi:bootstrap-project <idea>` |
 | Your framework or database isn't in the catalog | `/rafi:add-stack <name>` |
 | Add icons, search, a CMS, payments, … later, or a library not in the catalog | `/rafi:add-capability <concern>` |
+| Write a feature's spec (Claude asks, or you fill it) | `/rafi:spec <feature>` |
 | Plan a feature | `/rafi:plan-feature <name>` |
 | Build one piece | `/rafi:slice <name>` (runs review and audits for you) |
 | Fix a bug | `/rafi:fix-issue <description>` |

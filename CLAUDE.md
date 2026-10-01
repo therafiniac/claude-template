@@ -22,7 +22,7 @@
 
 ## Workflow (commands come from the `rafi` plugin)
 1. Specs live in `docs/prd/`, decisions in `docs/adr/`.
-2. `/rafi:plan-feature <name>`: explore and plan. Wait for approval.
+2. `/rafi:spec <feature>`: write the spec in `docs/prd/` (Claude asks, or I fill it). Then `/rafi:plan-feature <name>`: explore and plan. Wait for approval.
 3. `/rafi:slice <name>`: implement one vertical slice with tests, checks, review, and audits.
 4. `/rafi:fix-issue <description>`: failing test first, then the fix.
    `/rafi:add-capability <concern>`: add icons, CMS, search, and so on. Records the choice in `docs/stack-profile.md` and an ADR.
