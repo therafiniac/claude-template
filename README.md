@@ -201,7 +201,7 @@ Accept the "trust this folder" question. If it offers to install the `rafi` plug
 2. Type: `read the .env file`. **Claude must refuse.** If it reads it, stop and check `.claude/settings.json`.
 
 ### 6.3 Shape the idea (when you don't know the stack yet)
-If you already know exactly which framework and libraries you want, skip to 6.4. Otherwise:
+This step is for a **brand-new** project. If you already know exactly which framework and libraries you want, skip to 6.4. (Ideas for a project that already exists go through `/rafi:discuss` instead; see 8.2.) Otherwise:
 ```
 /rafi:brainstorm website for a sanskrit teacher
 ```
@@ -250,7 +250,7 @@ Then the stack, built from the plugin's catalog. Each row has a proposed choice 
 
 You can swap anything: `use iconify-astro-icon for icons` or `use keystatic instead`. When you confirm, Claude writes **`docs/brainstorm.md`**: the idea, users, pages, draft "done" rules, the chosen approach, and this table. **It writes no code.**
 
-**Something you need isn't in the catalog?** Claude lists it as "not in catalog". Run `/rafi:add-capability <name>` (for a library) or `/rafi:add-stack <name>` (for a framework or database) first. See 8.3.
+**Something you need isn't in the catalog?** Claude lists it as "not in catalog". Run `/rafi:add-capability <name>` (for a library) or `/rafi:add-stack <name>` (for a framework or database) first. See 8.4.
 
 ### 6.4 Build the base project
 ```
@@ -308,6 +308,8 @@ Every feature follows the same loop:
                                                                      |
                                         push -> merge -> deploy  <---+ (feature done)
 ```
+
+**You don't have to memorize the order.** Every `/rafi:` command ends with a `Next:` line suggesting what to do next, based on what just happened. For example, after a slice: `Next: /clear, then /rafi:slice tag pages and links`. It's only a suggestion; Claude never runs it, and you can do something else.
 
 The example feature: **tag pages**, so a visitor can see all lessons tagged "grammar".
 
@@ -371,7 +373,7 @@ Claude:
 3. runs `pnpm check` until it passes
 4. asks the code-reviewer agent to review the changes, and fixes serious findings
 5. runs the audits that match the change (here: none for a schema change)
-6. reports in five lines or fewer, ending with just a commit message
+6. reports in five lines or fewer, then a commit message on its own line, then a `Next:` suggestion
 
 Example report:
 ```
@@ -379,6 +381,7 @@ Added tags (lowercased) to the lesson schema and a getLessonsByTag helper.
 pnpm check: passes. Tests: 5 added.
 Reviewer: approve, 0 blockers. Audits: none triggered.
 feat(content): add lesson tags
+Next: /clear, then /rafi:slice tag pages and links
 ```
 **Claude never commits.** That's your job.
 
@@ -440,28 +443,37 @@ If your host is connected, it deploys `main` automatically.
 ```
 Claude first writes a test that fails because of the bug, states the root cause in one sentence, makes the smallest fix, and runs `pnpm check`. It ends with a commit message such as `fix(tags): match tags case-insensitively`. If the cause is a security or data problem, it also runs a security review.
 
-### 8.2 Add a library later (search, a CMS, payments, …)
+### 8.2 A new idea in the middle of a project
+Weeks after launch, you wonder whether students could book classes online:
+```
+/rafi:discuss online class booking
+```
+Claude reads your existing stack, specs, and decisions, asks a few plain questions, and proposes 2–3 approaches that fit **what you already have**. It saves the conversation's outcome to `docs/discussions/<date>-online-class-booking.md` and suggests the next step: usually `/rafi:spec <feature>` for a new feature, or `/rafi:add-capability <concern>` if a new library is needed. It writes no code.
+
+Use `/rafi:discuss` anytime in an existing project, even just to think something through. (`/rafi:brainstorm` is only for brand-new projects; in an existing one it points you to `/rafi:discuss`.)
+
+### 8.3 Add a library later (search, a CMS, payments, …)
 Months later, the teacher wants a newsletter signup form:
 ```
 /rafi:add-capability forms
 ```
 Claude reads your stack, proposes the option that fits (with alternatives), checks the current docs, shows a plan, and builds it after you approve. It records the choice in `docs/stack-profile.md` and in a new ADR, so the audits know about it.
 
-### 8.3 A technology that isn't in the catalog
+### 8.4 A technology that isn't in the catalog
 - **A library** (for example a different payment provider): `/rafi:add-capability payments paypal`. Claude interviews you, reads the official docs, and drafts it in the catalog format for your approval.
 - **A framework or database** (for example Django or MySQL): `/rafi:add-stack Django`. Same idea, for a whole framework or database.
 
 Drafts are saved in `docs/stack-drafts/`. To keep one for every future project, copy it into the plugin (see the plugin README, section 8).
 
-### 8.4 A quick review of your own changes
+### 8.5 A quick review of your own changes
 ```
 /rafi:code-review
 ```
 
-### 8.5 You changed something outside a slice
+### 8.6 You changed something outside a slice
 Run the matching audit yourself (see the cheat sheet). Audits only report; they never change your code.
 
-### 8.6 Before launching
+### 8.7 Before launching
 ```
 /rafi:release-check
 ```
@@ -472,17 +484,17 @@ Claude runs every check, the browser and speed tests (if the project has them), 
 - search engine setup (for example Google Search Console)
 - you know how to roll back a bad deploy
 
-### 8.7 After a rough session
+### 8.8 After a rough session
 ```
 /rafi:retro
 ```
 Claude looks at what you had to correct or repeat, and proposes up to seven rules for `CLAUDE.md` or `.claude/rules/`. You approve which to keep. This is how the setup gets smarter over time.
 
-### 8.8 Weekly and quarterly habits
+### 8.9 Weekly and quarterly habits
 - **Weekly:** Dependabot opens pull requests to update packages. Nothing checks them automatically. To test one: `git fetch`, `git switch <its branch>`, `pnpm install`, `pnpm check`. Merge if it passes.
 - **Quarterly:** run the four audits with `full`, trim `CLAUDE.md`, and run `/context` in Claude Code to see whether the setup uses too much of Claude's memory.
 
-### 8.9 Habits that keep this efficient
+### 8.10 Habits that keep this efficient
 - **One task per chat.** `/clear` between tasks.
 - **`Shift+Tab`** switches Claude into Plan Mode, where it can only read and plan.
 - **`/rewind`** (or Esc twice) undoes a bad turn. Faster than arguing.
@@ -492,7 +504,8 @@ Claude looks at what you had to correct or repeat, and proposes up to seven rule
 
 | Situation | Command |
 |---|---|
-| An idea, but no stack decided | `/rafi:brainstorm <idea>` |
+| An idea for a new project, no stack decided | `/rafi:brainstorm <idea>` |
+| A new idea or change in an existing project, or just thinking something through | `/rafi:discuss <topic>` |
 | Start a project | `/rafi:bootstrap-project <idea>` |
 | Your framework or database isn't in the catalog | `/rafi:add-stack <name>` |
 | Add icons, search, a CMS, payments, … later, or a library not in the catalog | `/rafi:add-capability <concern>` |
@@ -568,6 +581,7 @@ Files created later in each project:
 | Path | Created by | What it is |
 |---|---|---|
 | `docs/brainstorm.md` | `/rafi:brainstorm` | The idea, pages, approach, and stack table. Bootstrap reads it |
+| `docs/discussions/` | `/rafi:discuss` | One dated file per discussion: the problem, approaches, the choice, next step |
 | `docs/stack-profile.md` | `/rafi:bootstrap-project`, extended by `/rafi:add-capability` | Your stack table and the rules for each choice. The audits read it |
 | `docs/stack-drafts/` | `/rafi:add-stack`, `/rafi:add-capability` | Drafted profiles waiting to be used or copied into the plugin |
 | `docs/audits/` | The audits | Findings logs. Rows are never deleted, only marked Fixed |
@@ -615,7 +629,7 @@ Files created later in each project:
 
 **Can I use a database other than MongoDB or Postgres?** Yes. Run `/rafi:add-stack MySQL` (or any name) and choose "database" when asked.
 
-**Can I use a library that isn't in the catalog?** Yes. Run `/rafi:add-capability <concern> <library>`. See 8.3.
+**Can I use a library that isn't in the catalog?** Yes. Run `/rafi:add-capability <concern> <library>`. See 8.4.
 
 **Can I skip the browser and speed tests?** Yes. Don't add the `test:e2e` and `lighthouse` scripts, or remove them. `pnpm check` doesn't depend on them.
 
@@ -630,6 +644,6 @@ Files created later in each project:
 ## 16. Known caveats
 
 - gitleaks' staged-files scan has a reported bug (issue #2281) that can miss a secret. There is no second scan on GitHub, so glance at your diff for keys before pushing.
-- Nothing checks Dependabot pull requests automatically. Test them locally (8.8) before merging.
+- Nothing checks Dependabot pull requests automatically. Test them locally (8.9) before merging.
 - The Stop hook, the audits, and plugin loading were tested with scripts and a dry-run project, not yet over a long real project. Watch them in your first real project.
 - `CODEOWNERS` and `.claude/settings.json` mention `therafiniac`. Change both if your GitHub username changes.

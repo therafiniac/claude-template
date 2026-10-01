@@ -21,7 +21,7 @@
 - Commits follow Conventional Commits. A commit-msg hook enforces it.
 
 ## Workflow (commands come from the `rafi` plugin)
-1. Specs live in `docs/prd/`, decisions in `docs/adr/`.
+1. Specs live in `docs/prd/`, decisions in `docs/adr/`, idea discussions in `docs/discussions/`. `/rafi:discuss <topic>`: talk through a new idea or change against the current stack.
 2. `/rafi:spec <feature>`: write the spec in `docs/prd/` (Claude asks, or I fill it). Then `/rafi:plan-feature <name>`: explore and plan. Wait for approval.
 3. `/rafi:slice <name>`: implement one vertical slice with tests, checks, review, and audits.
 4. `/rafi:fix-issue <description>`: failing test first, then the fix.
