@@ -39,10 +39,12 @@ Think of a carpenter's workshop that is already set up before each job: the tool
 | **Rules for Claude** (`CLAUDE.md`, `.claude/rules/`) | Claude knows how you want code written, what to test, and what never to do, without you repeating it every chat |
 | **Guard rails** (`.claude/settings.json`) | Claude cannot read your secret files (`.env`), cannot force-push, and cannot run `rm -rf` |
 | **Commit checks** (`.husky/`) | Before any commit is saved, your computer scans it for leaked passwords or keys, tidies the code, and checks the message format |
+| **CI on GitHub** (`.github/workflows/ci.yml`) | Every pull request and every push to `main` re-runs the checks, the build, the browser tests, a package-vulnerability check, and a full-history secret scan on GitHub's machines |
+| **Ops docs** (`docs/runbook.md`, `SECURITY.md`, `CHANGELOG.md`) | Where deploy, rollback, backups, and alerts are written down; how people report security problems; what changed in each release |
 | **Planning folders** (`docs/`) | A place for what to build (`docs/prd/`), how it's built (`docs/architecture.md`), and why you chose things (`docs/adr/`) |
 | **The `/rafi:` commands** (from the plugin) | Typed commands that walk you through the whole process: shape the idea, set up the project, plan, build piece by piece, review, audit, and check before launch |
 
-What it does **not** do: nothing runs automatically on GitHub. You decide when to commit, push, and merge. You run the checks yourself (one command: `pnpm check`).
+What it does **not** do: commit, push, or merge for you. You decide when. Run `pnpm check` before pushing; CI on GitHub then checks again, so a mistake on your computer can't reach `main` unnoticed.
 
 ## 2. How the three pieces fit together
 
@@ -93,6 +95,9 @@ Why two repos instead of one? A plugin can carry commands, but it cannot carry a
 | **ADR** | Architecture Decision Record: a short note saying what you chose and why, so future-you remembers |
 | **Slice** | One small, complete piece of a feature: data, logic, screen, and tests together |
 | **Audit** | A review against a checklist: security, SEO, performance, or accessibility |
+| **CI** (continuous integration) | GitHub re-running your checks on its own machines for every pull request, so nothing broken reaches `main` |
+| **Migration** | A versioned script that changes the database's structure or existing data, safely, while the site keeps running |
+| **Runbook** | The page you open when something goes wrong in production: how to deploy, roll back, and restore |
 | **`pnpm`** | The tool that installs packages and runs the project's scripts. Like `npm`, but faster and stricter |
 | **`git switch` vs `git checkout`** | Both change branches. `git switch -c name` is the newer, clearer form of `git checkout -b name`. Use either |
 
@@ -186,10 +191,11 @@ This section builds a real example so you can see every step. The idea: **a webs
 mkdir -p ~/projects && cd ~/projects
 git clone git@github.com:therafiniac/claude-template.git vidya-site
 cd vidya-site
+git rev-parse HEAD > .claude/template-version
 rm -rf .git
 git init -b main
 ```
-Line by line: make a projects folder, download the template into a folder called `vidya-site`, go into it, delete the template's own history, and start a fresh history on a branch called `main`. Nothing exists on GitHub yet; that comes later, when you choose.
+Line by line: make a projects folder, download the template into a folder called `vidya-site`, go into it, note which template version you started from (`/rafi:sync-template` uses it later to bring in template updates), delete the template's own history, and start a fresh history on a branch called `main`. Nothing exists on GitHub yet; that comes later, when you choose.
 
 ### 6.2 Open Claude Code and run two safety checks
 ```bash
@@ -293,9 +299,12 @@ Two things can block this commit:
    git remote add origin git@github.com:therafiniac/vidya-site.git
    git push -u origin main
    ```
-3. Connect the repo to your host (Cloudflare Pages, Netlify, Railway, …) in the host's dashboard. From then on, pushing to `main` deploys.
+3. Open the repo's **Actions** tab. The **CI** workflow runs on that first push; wait for the green tick.
+4. Connect the repo to your host (Cloudflare Pages, Netlify, Railway, …) in the host's dashboard. Set the production environment variables, the health check path, and (with a database) the pre-deploy migrate command there. From then on, merging to `main` deploys.
+5. **Protect `main`** (Settings → Rules → Rulesets → New branch ruleset, target `main`): require a pull request, require the `check` and `secret scan` status checks, and block force pushes. GitHub offers this free for public repos; private repos need GitHub Pro. Without it, the rules still hold for Claude (the plugin's guard hook blocks pushes to `main`), but not for you, so open pull requests anyway.
+6. Fill the `<placeholders>` left in `docs/runbook.md` and `SECURITY.md` once you know the answers (bootstrap lists them). `/rafi:release-check` won't pass until they're filled.
 
-There are no GitHub secrets, branch rules, or Actions to configure.
+CI needs no secrets. Free GitHub accounts include a monthly allowance of Actions minutes for private repos, which a small project stays well inside.
 
 ## 7. The daily workflow: building features
 
@@ -306,7 +315,7 @@ Every feature follows the same loop:
                                ^                                     |
                                +------------ next slice <------------+
                                                                      |
-                                        push -> merge -> deploy  <---+ (feature done)
+                         /rafi:pr -> push -> CI green -> merge -> deploy  <---+ (feature done)
 ```
 
 **You don't have to memorize the order.** Every `/rafi:` command ends with a `Next:` line suggesting what to do next, based on what just happened. For example, after a slice: `Next: /clear, then /rafi:slice tag pages and links`. It's only a suggestion; Claude never runs it, and you can do something else.
@@ -414,21 +423,20 @@ The part in brackets (the scope) is optional. Keep the first line short.
 ```
 Repeat 7.4 to 7.6 until every slice of the plan is done.
 
-### 7.7 Push, merge, deploy
+### 7.7 Pull request, merge, deploy
+```
+/rafi:pr
+```
+Claude runs `pnpm check` and `pnpm build`, fills the pull request template from the diff, the spec, and the audit logs (ticking only boxes that are really done), lists breaking changes, adds a line to `CHANGELOG.md` under `Unreleased`, and prints a PR title and body to paste. It never pushes. Commit the changelog line, then push:
 ```bash
-pnpm check
+git add CHANGELOG.md && git commit -m "docs(changelog): add lesson tags"
 git push -u origin feat/lesson-tags
 ```
-On GitHub, click **Compare & pull request**, then **Create pull request**. Nothing is checked automatically on GitHub: **you are the gate**, so make sure `pnpm check` passed before pushing. When satisfied, click **Merge pull request**, then **Delete branch**.
+On GitHub, click **Compare & pull request**, paste the title and body, then **Create pull request**. CI runs on it. **Merge only when CI is green**: click **Merge pull request**, then **Delete branch**.
 
-Prefer to skip pull requests for small changes? Merge on your computer:
-```bash
-git switch main
-git merge feat/lesson-tags
-git push
-```
+Merging on your computer and pushing `main` directly still works, but it skips the pull request checks until after the fact, and the guard hook stops Claude from doing it for you. Prefer pull requests.
 
-Either way, finish by updating your local `main`:
+Finish by updating your local `main`:
 ```bash
 git switch main
 git pull
@@ -477,12 +485,14 @@ Run the matching audit yourself (see the cheat sheet). Audits only report; they 
 ```
 /rafi:release-check
 ```
-Claude runs every check, the browser and speed tests (if the project has them), and all audits across the whole project, then gives a **ship** or **hold** verdict with the blockers listed. Fix every Critical and High finding. Then do these checks yourself, because code can't prove them:
+Claude runs every check, the browser and speed tests (if the project has them), a package-vulnerability check, and all audits across the whole project. It also checks operational readiness: CI exists (and asks you whether the last run on `main` is green), `docs/runbook.md` and `SECURITY.md` have no placeholders left, no migration phase is pending, error tracking, logging, and rate limits are in place, and `CHANGELOG.md` has entries to release. Then it gives a **ship** or **hold** verdict with the blockers listed. Fix every Critical and High finding. Then do these checks yourself, because code can't prove them:
 - environment variables are set in your hosting
 - walk through the main pages with the keyboard only (Tab, Enter, Esc)
 - try a screen reader if you can
 - search engine setup (for example Google Search Console)
-- you know how to roll back a bad deploy
+- restore a backup once, and note the date in `docs/runbook.md`
+- the uptime monitor alerts you (point it at a bad URL once)
+- you can follow the rollback steps in `docs/runbook.md`
 
 ### 8.8 After a rough session
 ```
@@ -491,7 +501,8 @@ Claude runs every check, the browser and speed tests (if the project has them), 
 Claude looks at what you had to correct or repeat, and proposes up to seven rules for `CLAUDE.md` or `.claude/rules/`. You approve which to keep. This is how the setup gets smarter over time.
 
 ### 8.9 Weekly and quarterly habits
-- **Weekly:** Dependabot opens pull requests to update packages. Nothing checks them automatically. To test one: `git fetch`, `git switch <its branch>`, `pnpm install`, `pnpm check`. Merge if it passes.
+- **Weekly:** Dependabot opens pull requests to update packages, and CI checks each one. Run `/rafi:deps`: Claude reads each update's release notes, searches your code for anything they break, runs the checks on each branch, and gives a merge, merge-after-changes, or hold verdict. Merge one at a time, only when CI is green.
+- **Monthly:** `/rafi:sync-template` to pull in template improvements (rules, CI, hooks, doc templates).
 - **Quarterly:** run the four audits with `full`, trim `CLAUDE.md`, and run `/context` in Claude Code to see whether the setup uses too much of Claude's memory.
 
 ### 8.10 Habits that keep this efficient
@@ -499,6 +510,30 @@ Claude looks at what you had to correct or repeat, and proposes up to seven rule
 - **`Shift+Tab`** switches Claude into Plan Mode, where it can only read and plan.
 - **`/rewind`** (or Esc twice) undoes a bad turn. Faster than arguing.
 - **Correcting Claude twice for the same thing?** Add a line to the `Gotchas` section of `CLAUDE.md`.
+
+### 8.11 Changing the database
+Renaming a column, making a field required, splitting a table, rewriting existing data:
+```
+/rafi:migration rename users.name to full_name
+```
+Claude classifies the change. A safe one (a new table, a new optional field) is done in one step. A breaking one is split into phases you deploy one at a time: **expand** (add the new shape, so old and new code both work), **backfill** (copy data in small batches that can be re-run), **switch** (read from the new shape), and **contract** (remove the old shape, in a later release). Each phase has a rollback, and destructive phases require a confirmed backup first. Phases still to do are listed in `docs/runbook.md` under "Pending migrations", so nothing is forgotten. `/rafi:slice` applies the same rules automatically when a slice touches the schema.
+
+### 8.12 Where was I?
+After a break or a `/clear`:
+```
+/rafi:status
+```
+Claude reads git, your specs, the audit logs, and the runbook, and tells you in a few lines where the project stands (stage, current feature, open serious findings, pending migrations, uncommitted work) and the one next step. It changes nothing.
+
+### 8.13 Adding observability, rate limits, uploads, or background jobs
+These are capabilities in the catalog, like search or forms:
+```
+/rafi:add-capability observability       # error tracking, structured logs, uptime monitor
+/rafi:add-capability rate-limiting       # login, forms, search, paid APIs
+/rafi:add-capability file-storage        # user uploads
+/rafi:add-capability background-jobs     # emails, webhooks, scheduled work
+```
+Bootstrap proposes them for new projects when they fit. `/rafi:release-check` treats missing error tracking or missing rate limits (on a project with logins or forms) as a blocker.
 
 ## 9. Cheat sheet: which command, when
 
@@ -513,6 +548,11 @@ Claude looks at what you had to correct or repeat, and proposes up to seven rule
 | Plan a feature | `/rafi:plan-feature <name>` |
 | Build one piece | `/rafi:slice <name>` (runs review and audits for you) |
 | Fix a bug | `/rafi:fix-issue <description>` |
+| Change the database schema or existing data | `/rafi:migration <change>` |
+| Where am I, what's next? | `/rafi:status` |
+| Prepare a pull request (body, checklist, changelog) | `/rafi:pr` |
+| Review dependency updates | `/rafi:deps` |
+| Pull in template updates | `/rafi:sync-template` |
 | Review your changes | `/rafi:code-review` |
 | Changed login, APIs, uploads, or packages outside a slice | `/rafi:security-audit diff` |
 | Changed public pages, URLs, or page titles | `/rafi:seo-audit diff` |
@@ -523,7 +563,7 @@ Claude looks at what you had to correct or repeat, and proposes up to seven rule
 
 **Audit scope:** `diff` (your branch compared with `main`, the default), `full` (the whole project), or a folder such as `src/pages/tags`. Each audit writes its findings to `docs/audits/` in your project.
 
-The code reviewer, security auditor, and test writer agents, and the two hooks, run on their own. You never call them directly.
+The code reviewer, security auditor, and test writer agents, and the three hooks, run on their own. You never call them directly.
 
 ## 10. The safety nets
 
@@ -531,9 +571,11 @@ The code reviewer, security auditor, and test writer agents, and the two hooks, 
 |---|---|---|
 | `CLAUDE.md` and `.claude/rules/` | Tell Claude your conventions | Advice. Claude usually follows it but can slip |
 | `.claude/settings.json` | Blocks reading `.env` and `secrets/`, force-push, `rm -rf` | A guard rail, not a sandbox |
-| Plugin hooks | Tidy each file Claude edits; run a type check whenever Claude finishes a reply, so it fixes errors before handing back | Automatic |
+| Plugin guard hook | Blocks Claude from reading `.env` files or `secrets/` (also through `cat` and similar), recursive force deletes in any spelling, skipping git hooks, force-pushing, pushing to `main`, and hand-editing lockfiles | Enforced on every tool call. Stronger than settings patterns |
+| Plugin hooks | Tidy each file Claude edits; run a type check whenever Claude finishes a reply (skipped if nothing changed since the last passing check), so it fixes errors before handing back | Automatic |
 | Commit checks (`.husky/`) | Secret scan, lint and format the files being committed, check the message | Blocks the commit on your computer |
-| You | Read the diff, run `pnpm check` before pushing, merge | The final gate |
+| CI (`.github/workflows/ci.yml`) | Check, build, E2E, package-vulnerability check, full-history secret scan on every PR and push to `main` | Blocks the merge if `main` is protected; otherwise a red cross you must not ignore |
+| You | Read the diff, run `pnpm check` before pushing, merge only on green CI | The final gate |
 
 **Rule of thumb:** if something must *never* happen, it belongs in a hook or a check, not only in `CLAUDE.md`.
 
@@ -569,12 +611,17 @@ The project also has `.nvmrc` (which Node version), a `packageManager` field (wh
 | `.husky/commit-msg` | Checks the commit message format | Rarely |
 | `commitlint.config.cjs` | The commit message rules (Conventional Commits) | Rarely |
 | `.lintstagedrc.json` | Which files get linted and formatted at commit time | Rarely |
+| `.github/workflows/ci.yml` | CI: checks, build, E2E, `pnpm audit`, secret scan. Bootstrap adds stack parts (for example a Postgres service) | Rarely |
 | `.github/dependabot.yml` | Weekly package-update pull requests | Rarely |
 | `.github/pull_request_template.md` | A checklist shown on every pull request | Yes |
 | `.github/CODEOWNERS` | Who owns the code (your GitHub username) | Yes |
 | `docs/prd/_template.md` | Starting point for feature specs | Yes |
 | `docs/architecture.md` | How the system is built. Bootstrap fills it | Yes |
 | `docs/adr/_template.md` | Starting point for decision records | Yes |
+| `docs/runbook.md` | Deploy, rollback, secrets, backups, alerts, pending migrations, incidents. Bootstrap fills it | Yes, keep it current |
+| `SECURITY.md` | How to report a vulnerability. Bootstrap asks for the contact | Once |
+| `CHANGELOG.md` | User-facing changes per release. `/rafi:pr` adds entries | Through `/rafi:pr` |
+| `.claude/template-version` | Created in 6.1: the template commit the project started from | No (`/rafi:sync-template` updates it) |
 
 Files created later in each project:
 
@@ -590,13 +637,13 @@ Files created later in each project:
 
 ### Using this template in a repo that already exists
 1. Install the plugin (5.3).
-2. Copy these from this template into your repo: `CLAUDE.md`, `.claude/`, `.github/`, `.husky/`, `commitlint.config.cjs`, `.lintstagedrc.json`, `docs/`.
+2. Copy these from this template into your repo: `CLAUDE.md`, `.claude/`, `.github/`, `.husky/`, `commitlint.config.cjs`, `.lintstagedrc.json`, `docs/`, `SECURITY.md`, `CHANGELOG.md`. Write the template's commit to `.claude/template-version` (`git -C <template clone> rev-parse HEAD`).
 3. Create `docs/stack-profile.md`. Don't run `/rafi:bootstrap-project` here: it scaffolds a new project. Instead ask Claude to assemble the profile from the plugin's framework, database, and capability files that match what the repo already uses (same layout as bootstrap: a Stack table, then each file's rules). Run `/rafi:add-stack` or `/rafi:add-capability` first for anything the catalog lacks.
 4. Make sure `package.json` has the scripts from section 11, then run `pnpm install` and `pnpm run prepare`.
 
 ### Keeping projects up to date
 - **Toolkit changes** (commands, audits, the catalog) arrive by updating the plugin (plugin README, section 2). Every project picks them up after a Claude Code restart.
-- **Template changes** (rules, guard rails, commit checks) don't reach existing projects on their own. Compare the files and copy the changed ones by hand.
+- **Template changes** (rules, guard rails, commit checks, CI) don't reach existing projects on their own. Run `/rafi:sync-template`: it fetches the latest template, compares file by file using `.claude/template-version` as the common starting point, replaces files you never changed, merges files you did, never touches your filled-in `CLAUDE.md` or docs (it only suggests additions), and shows everything for your approval first.
 
 ## 14. Troubleshooting
 
@@ -616,12 +663,17 @@ Files created later in each project:
 | Claude keeps getting stopped by the type check | Fix the type error it reports. It retries once per reply, so it can't loop |
 | Claude keeps ignoring a rule | The rule is too long or should be enforced. Shorten `CLAUDE.md`, or turn the rule into a hook or lint rule |
 | Claude asks permission for every command | Add the command to the `allow` list in `.claude/settings.json` |
+| "Blocked by rafi guard: …" | Working as intended: the message says what was blocked and what to do instead. If you really need it, run the command yourself in a terminal. To switch the guard off for a whole session, start Claude Code with `RAFI_GUARD=off claude` |
+| CI fails on `pnpm install --frozen-lockfile` | The lockfile is out of date. Run `pnpm install` locally and commit `pnpm-lock.yaml` |
+| CI fails on `pnpm build` but it works locally | CI builds with `.env.example`. Make its placeholder values pass the env module's validation |
+| CI fails on `pnpm audit` | A package has a high or critical advisory. `pnpm why <package>` shows who pulls it in; update that package (`/rafi:deps <package>`). If no fix exists and you accept the risk, record it in an ADR and ignore that advisory in pnpm's audit settings |
+| CI's secret scan fails | A secret is in the git history. Rotate it at its provider first, then remove it from the code. Removing it from history needs a history rewrite: ask before doing that on a shared branch |
 
 ## 15. FAQ
 
 **Do I need the GitHub CLI (`gh`)?** No. Everything uses plain git and the GitHub website.
 
-**Do I need a paid GitHub plan?** No.
+**Do I need a paid GitHub plan?** No. CI fits in the free Actions minutes for a small private project. The only paid feature is protecting `main` on a *private* repo (GitHub Pro); see 6.7 for what holds without it.
 
 **Why copy a folder instead of GitHub's "template repository" button?** The button creates a GitHub repo immediately, with this README inside. Copying keeps the project on your computer until you decide to publish it.
 
@@ -643,7 +695,8 @@ Files created later in each project:
 
 ## 16. Known caveats
 
-- gitleaks' staged-files scan has a reported bug (issue #2281) that can miss a secret. There is no second scan on GitHub, so glance at your diff for keys before pushing.
-- Nothing checks Dependabot pull requests automatically. Test them locally (8.9) before merging.
+- gitleaks' staged-files scan has a reported bug (issue #2281) that can miss a secret. CI scans the full history as a second line, but by then the secret has reached GitHub: glance at your diff for keys before pushing anyway.
+- CI checks Dependabot pull requests, but a green build doesn't prove a major upgrade is safe. Use `/rafi:deps` (8.9) before merging majors.
+- The CI workflow's action versions are pinned to commit SHAs and updated by Dependabot. The gitleaks version and its checksum in `ci.yml` are pinned by hand: update both together.
 - The Stop hook, the audits, and plugin loading were tested with scripts and a dry-run project, not yet over a long real project. Watch them in your first real project.
 - `CODEOWNERS` and `.claude/settings.json` mention `therafiniac`. Change both if your GitHub username changes.

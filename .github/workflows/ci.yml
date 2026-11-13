@@ -1,0 +1,86 @@
+# CI: the same gate as `pnpm check`, plus what can't run reliably on a laptop.
+# Actions are pinned to commit SHAs (tag in the comment); Dependabot keeps them current.
+# /rafi:bootstrap-project adds stack-specific parts (database services, PHP) from the
+# `## CI` sections of the chosen profiles.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Node steps are skipped until the project is bootstrapped (no package.json yet).
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1 (version from packageManager)
+        if: hashFiles('package.json') != ''
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: hashFiles('package.json') != ''
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - if: hashFiles('package.json') != ''
+        run: pnpm install --frozen-lockfile
+
+      # The build validates env vars. .env.example holds safe placeholder values that pass validation.
+      - name: Use .env.example as CI env
+        if: hashFiles('package.json') != ''
+        run: if [ -f .env.example ]; then cp .env.example .env; fi
+
+      - if: hashFiles('package.json') != ''
+        run: pnpm check
+      - if: hashFiles('package.json') != ''
+        run: pnpm build
+
+      - name: Dependency advisories (high and critical, production deps)
+        if: hashFiles('package.json') != ''
+        run: pnpm audit --prod --audit-level high
+
+      - name: E2E and accessibility tests
+        if: hashFiles('package.json') != '' && hashFiles('playwright.config.*') != ''
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          pnpm test:e2e
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install gitleaks (checksum verified)
+        run: |
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$tarball" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
+          echo "${GITLEAKS_SHA256}  ${tarball}" | sha256sum -c -
+          tar -xzf "$tarball" gitleaks
+          sudo mv gitleaks /usr/local/bin/
+
+      # Full history: catches what the staged-files pre-commit scan can miss.
+      - run: gitleaks git --redact --no-banner .
