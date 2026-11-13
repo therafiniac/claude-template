@@ -1,3 +1,12 @@
+# main and dev change only through --no-ff merges. A merge with conflicts is committed with MERGE_HEAD present.
+branch=$(git symbolic-ref --short -q HEAD || true)
+# The repository's first commit (the scaffold) is allowed on main.
+if { [ "$branch" = "main" ] || [ "$branch" = "dev" ]; } && git rev-parse -q --verify HEAD >/dev/null \
+  && [ ! -f "$(git rev-parse --git-path MERGE_HEAD)" ]; then
+  echo "Direct commits on $branch are not allowed. Create a branch from dev: git switch -c feat/<name> dev" >&2
+  exit 1
+fi
+
 # Secret scan first, so a leak fails fast.
 if [ -z "${SKIP_GITLEAKS:-}" ]; then
   if ! command -v gitleaks >/dev/null 2>&1; then

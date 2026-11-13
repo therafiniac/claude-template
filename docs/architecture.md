@@ -24,7 +24,7 @@
 <Name, purpose, where set. Never values.>
 
 ## Deployment
-<Hosting, build, health check, rollback.>
+<Hosting and build in one paragraph. Step-by-step deploy, rollback, backups, and alerts live in docs/runbook.md.>
 
 ## Decisions
 <Links to docs/adr/.>

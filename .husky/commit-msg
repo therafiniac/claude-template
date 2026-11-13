@@ -1,1 +1,6 @@
+# Reject attribution lines even before commitlint is installed.
+if grep -Eiq '^(co-authored-by|generated-by):|claude\.ai|anthropic\.com|generated (with|by) |🤖' "$1"; then
+  echo "Commit message contains attribution (Co-authored-by, tool or AI names, generated-with notes). Remove it." >&2
+  exit 1
+fi
 pnpm exec commitlint --edit "$1"
