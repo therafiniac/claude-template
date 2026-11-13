@@ -1,649 +1,400 @@
 # claude-template
 
-**A ready-made starting folder for every new project.** You copy it, open it with Claude Code, and Claude builds your project with you in small, checked steps. It follows fixed standards for security, speed, SEO, accessibility, and code quality, so you don't have to remember them.
+The starting folder for every new project. Copy it, open it in Claude Code, and build with the `/rafi:` commands from the [claude-plugins](https://github.com/therafiniac/claude-plugins) plugin. It brings the project rules, guard rails, git hooks, CI, and docs structure; the plugin brings the commands, audits, and stack catalog.
 
-> **Which README do I need?**
-> - **This one** is the user guide: setup, your first project from idea to live site, and the daily routine. Start here.
-> - The **[claude-plugins README](https://github.com/therafiniac/claude-plugins)** is the reference manual: every command, every library option, the audits, and how to change the toolkit itself.
+- **This README** is the user guide: setup, a first project, the git workflow, daily use.
+- The **claude-plugins README** is the reference for every command, the catalog, the audits, and the hooks.
 
-> When you create a project from this template, this README gets replaced by the project's own. `/rafi:bootstrap-project` does that for you.
-
-You don't need to know Claude Code, plugins, or git in depth. Read the sections in order the first time; after that, section 9 (the cheat sheet) is usually all you need.
+`/rafi:bootstrap-project` replaces this README with the project's own.
 
 ## Contents
-1. [What this is, in plain words](#1-what-this-is-in-plain-words)
-2. [How the three pieces fit together](#2-how-the-three-pieces-fit-together)
-3. [Words you will see](#3-words-you-will-see)
-4. [Before you start: tools and accounts](#4-before-you-start-tools-and-accounts)
-5. [One-time setup on your computer](#5-one-time-setup-on-your-computer)
-6. [Your first project, start to finish (worked example)](#6-your-first-project-start-to-finish-worked-example)
-7. [The daily workflow: building features](#7-the-daily-workflow-building-features)
-8. [Other situations](#8-other-situations)
-9. [Cheat sheet: which command, when](#9-cheat-sheet-which-command-when)
-10. [The safety nets](#10-the-safety-nets)
-11. [Scripts, and stacks that are not Node](#11-scripts-and-stacks-that-are-not-node)
-12. [What is in this repo](#12-what-is-in-this-repo)
-13. [Existing repos, and keeping projects up to date](#13-existing-repos-and-keeping-projects-up-to-date)
+1. [What you get](#1-what-you-get)
+2. [Prerequisites](#2-prerequisites)
+3. [One-time setup](#3-one-time-setup)
+4. [Start a project](#4-start-a-project)
+5. [Git workflow](#5-git-workflow)
+6. [Build a feature](#6-build-a-feature)
+7. [Release and hotfix](#7-release-and-hotfix)
+8. [Other tasks](#8-other-tasks)
+9. [Cheat sheet](#9-cheat-sheet)
+10. [Safety nets](#10-safety-nets)
+11. [Scripts and non-Node stacks](#11-scripts-and-non-node-stacks)
+12. [Files](#12-files)
+13. [Existing repos and template updates](#13-existing-repos-and-template-updates)
 14. [Troubleshooting](#14-troubleshooting)
 15. [FAQ](#15-faq)
 16. [Known caveats](#16-known-caveats)
 
 ---
 
-## 1. What this is, in plain words
+## 1. What you get
 
-Think of a carpenter's workshop that is already set up before each job: the tools are on the wall, the safety guards are fitted, and the checklist is pinned by the door. This template is that workshop for software. Every project you start from it gets:
-
-| You get | What it means for you |
-|---|---|
-| **Rules for Claude** (`CLAUDE.md`, `.claude/rules/`) | Claude knows how you want code written, what to test, and what never to do, without you repeating it every chat |
-| **Guard rails** (`.claude/settings.json`) | Claude cannot read your secret files (`.env`), cannot force-push, and cannot run `rm -rf` |
-| **Commit checks** (`.husky/`) | Before any commit is saved, your computer scans it for leaked passwords or keys, tidies the code, and checks the message format |
-| **Planning folders** (`docs/`) | A place for what to build (`docs/prd/`), how it's built (`docs/architecture.md`), and why you chose things (`docs/adr/`) |
-| **The `/rafi:` commands** (from the plugin) | Typed commands that walk you through the whole process: shape the idea, set up the project, plan, build piece by piece, review, audit, and check before launch |
-
-What it does **not** do: nothing runs automatically on GitHub. You decide when to commit, push, and merge. You run the checks yourself (one command: `pnpm check`).
-
-## 2. How the three pieces fit together
-
-Your setup has three parts. Each lives in a different place and changes at a different speed.
-
-```
-   claude-plugins repo                          claude-template repo (this one)
-   THE TOOLKIT                                  THE STARTER FILES
-   commands, audits, library catalog            rules, guard rails, commit checks, docs folders
-                |                                              |
-      installed ONCE into Claude Code                copied for EACH new project
-                |                                              |
-                +-------------------> YOUR PROJECT <-----------+
-                                          ^
-                                          |
-                        ~/.claude/   YOUR PERSONAL DEFAULTS
-                        how Claude talks to you, set up once per computer
-```
-
-| Piece | What it holds | You touch it when |
+| Part | Files | Effect |
 |---|---|---|
-| **Plugin** (`claude-plugins`) | The `/rafi:` commands, the audit checklists, the helper agents, the automatic hooks, the catalog of frameworks, databases, and libraries | You want to improve the toolkit. Every project gets the improvement |
-| **Template** (this repo) | Project rules, guard rails, commit checks, docs folders | You want to change what every *new* project starts with |
-| **Personal defaults** (`~/.claude/`) | Your communication style for Claude, plus a block on reading secrets | Once per computer |
+| Project memory | `CLAUDE.md`, `.claude/rules/` (code standards, testing, git) | Claude follows your conventions every session |
+| Guard rails | `.claude/settings.json` | Blocks reading secrets, destructive commands; pre-approves safe ones; turns off commit and PR attribution |
+| Git hooks | `.husky/`, `commitlint.config.cjs`, `.lintstagedrc.json` | Before each commit: no direct commits on `main`/`dev`, secret scan, lint and format, `type(scope): subject` message with no attribution |
+| CI | `.github/workflows/ci.yml` | On every PR and on pushes to `dev` and `main`: check, build, E2E, `pnpm audit`, full-history secret scan |
+| Updates | `.github/dependabot.yml` | Weekly package and action updates, targeting `dev` |
+| Docs | `docs/prd/`, `docs/adr/`, `docs/architecture.md`, `docs/runbook.md`, `SECURITY.md`, `CHANGELOG.md` | Specs, decisions, architecture, operations, security contact, release notes |
 
-Why two repos instead of one? A plugin can carry commands, but it cannot carry a project's `CLAUDE.md`, rules, or permission settings. Those must sit inside the project folder, so they come from the template.
+The plugin adds the `/rafi:` commands, the guard hook, auto-formatting, and a type check after every reply.
 
-## 3. Words you will see
+## 2. Prerequisites
 
-| Word | Plain meaning |
-|---|---|
-| **Repo** (repository) | A project folder that git tracks. Also the copy of it on GitHub |
-| **Clone** | Download a copy of a repo to your computer |
-| **Commit** | A saved snapshot of your changes, with a short message saying what changed |
-| **Branch** | Your own line of work, so `main` stays working until you are ready |
-| **Push / pull** | Upload your commits to GitHub / download commits from GitHub |
-| **Pull request (PR)** | A page on GitHub showing a branch's changes before you merge them into `main` |
-| **Hook** | A small script that runs automatically at a certain moment, for example just before a commit |
-| **Claude Code** | Claude running in your terminal, able to read and edit files in your project |
-| **Plugin** | A package of commands and rules you install into Claude Code once |
-| **Slash command / skill** | Something you run by typing `/name` in Claude Code, for example `/rafi:slice` |
-| **Agent (subagent)** | A helper Claude hands a job to, for example the code reviewer |
-| **Stack** | The technologies a project uses: a framework, maybe a database, and libraries |
-| **Framework** | The main building tool for the site or app, for example Astro or Next.js |
-| **Capability** | One job a library does for your project: icons, fonts, search, forms, a CMS, payments, and so on. The plugin has a catalog of vetted options for each |
-| **Stack profile** | The file `docs/stack-profile.md` in your project. It lists your chosen technologies and their rules, and the audits read it |
-| **PRD** | Product Requirements Document: a half-page spec saying what to build and how you'll know it's done |
-| **ADR** | Architecture Decision Record: a short note saying what you chose and why, so future-you remembers |
-| **Slice** | One small, complete piece of a feature: data, logic, screen, and tests together |
-| **Audit** | A review against a checklist: security, SEO, performance, or accessibility |
-| **`pnpm`** | The tool that installs packages and runs the project's scripts. Like `npm`, but faster and stricter |
-| **`git switch` vs `git checkout`** | Both change branches. `git switch -c name` is the newer, clearer form of `git checkout -b name`. Use either |
-
-## 4. Before you start: tools and accounts
-
-**Accounts:** a GitHub account, and Claude Code installed and logged in (`claude` works in your terminal).
-
-**Tools.** Pick your system:
+Accounts: GitHub, and Claude Code installed and logged in.
 
 ```bash
 # Fedora
 sudo dnf install git nodejs jq gitleaks
 curl -fsSL https://get.pnpm.io/install.sh | sh -
 
-# Ubuntu / Debian
+# Ubuntu / Debian (gitleaks: see below)
 sudo apt install git nodejs jq
 curl -fsSL https://get.pnpm.io/install.sh | sh -
-# gitleaks: see "If gitleaks is not in your package manager" below
 
 # macOS
 brew install git node jq gitleaks pnpm
 ```
+Open a new terminal after installing pnpm (or `sudo npm install -g pnpm` if the script fails).
 
-After installing pnpm, **open a new terminal** so your shell can find it. If the pnpm script fails, use `sudo npm install -g pnpm`.
+gitleaks without a package: download the `linux_x64` `.tar.gz` from the gitleaks GitHub Releases page, then `tar -xzf gitleaks_*_linux_x64.tar.gz && sudo mv gitleaks /usr/local/bin/`.
 
-**If gitleaks is not in your package manager:** download the `linux_x64` `.tar.gz` from the gitleaks Releases page on GitHub, then:
-```bash
-tar -xzf gitleaks_*_linux_x64.tar.gz
-sudo mv gitleaks /usr/local/bin/
-```
-
-**Check everything is installed.** This prints one version per tool. If any line says "command not found", install that tool again.
+Verify:
 ```bash
 git --version && node --version && pnpm --version && jq --version && gitleaks version && claude --version
 ```
 
-| Tool | Why you need it |
+| Tool | Used for |
 |---|---|
-| `git` | Saves the history of your project |
-| `node` | Runs JavaScript projects. Each project pins its version in `.nvmrc` |
-| `pnpm` | Installs packages and runs scripts such as `pnpm check` |
-| `jq` | The plugin's automatic hooks read JSON with it |
-| `gitleaks` | Blocks commits that contain passwords, API keys, or tokens |
+| `git` | History, branches, hooks |
+| `node`, `pnpm` | Running the project; each project pins versions in `.nvmrc` and `packageManager` |
+| `jq` | The plugin's hooks |
+| `gitleaks` | The pre-commit secret scan (CI downloads its own) |
+| `gh` (optional) | Lets `/rafi:pr`, `/rafi:merge`, `/rafi:release` create PRs and GitHub Releases for you |
 
-## 5. One-time setup on your computer
+## 3. One-time setup
 
-Do these three steps once per computer. After that, every project just works.
+1. **GitHub SSH key**
+   ```bash
+   ssh-keygen -t ed25519 -C "<your email>"
+   cat ~/.ssh/id_ed25519.pub        # add it on GitHub: Settings → SSH and GPG keys
+   ssh -T git@github.com            # "Hi <username>! You've successfully authenticated"
+   ```
+2. **Git identity** (commits are authored by you, never by a tool):
+   ```bash
+   git config --global user.name "<your name>"
+   git config --global user.email "<your GitHub email>"
+   ```
+3. **Personal defaults** (optional, from the `global-claude` folder of this setup): `./global-claude/install.sh` copies `CLAUDE.md` and `settings.json` into `~/.claude/`, backing up existing files. Check with `/memory` in Claude Code.
+4. **Plugin**
+   ```bash
+   claude plugin marketplace add therafiniac/claude-plugins
+   claude plugin install rafi@rafi-tools
+   ```
+   Restart Claude Code and type `/rafi:` to see the commands.
 
-### 5.1 Let git talk to GitHub (SSH key)
-```bash
-ssh-keygen -t ed25519 -C "your-email@example.com"
-cat ~/.ssh/id_ed25519.pub
-```
-Press Enter through the questions. Copy the single line that `cat` prints. On GitHub go to **Settings → SSH and GPG keys → New SSH key**, paste it, and save. Then test:
-```bash
-ssh -T git@github.com
-```
-**Success looks like:** `Hi <your-username>! You've successfully authenticated...`
+## 4. Start a project
 
-Prefer not to use SSH? Use the `https://github.com/...` addresses instead. Git will ask for your username and a personal access token (not your password).
-
-### 5.2 Install your personal defaults
-These live in the `global-claude` folder that comes with this setup.
-```bash
-./global-claude/install.sh
-```
-It copies `CLAUDE.md` and `settings.json` into `~/.claude/`, and backs up anything already there (as `*.bak.<number>`). From then on, in every project:
-- Claude answers briefly and directly, plans before big changes, and asks before adding a dependency.
-- Claude cannot read `.env` files, `~/.ssh`, or `~/.aws`, and cannot force-push.
-
-**Check it worked:** open Claude Code anywhere and type `/memory`. You should see `~/.claude/CLAUDE.md` listed.
-
-### 5.3 Install the plugin
-```bash
-claude plugin marketplace add therafiniac/claude-plugins
-claude plugin install rafi@rafi-tools
-```
-The first line tells Claude Code where your toolkit lives. The second installs it. **Restart Claude Code**, then type `/rafi:`.
-**Success looks like:** a list of commands such as `brainstorm`, `bootstrap-project`, `plan-feature`, `slice`.
-
-The plugin repo is private, so step 5.1 must be done first, or git cannot download it.
-
-## 6. Your first project, start to finish (worked example)
-
-This section builds a real example so you can see every step. The idea: **a website for a Sanskrit teacher**, with lessons written in Markdown, both Roman (IAST) and Devanagari text, a search box, and a contact form. Your own project will follow the same steps.
-
-> Conversations and outputs below are **examples**. Claude's exact wording and choices will differ for your project.
-
-### 6.1 Copy the template into a new folder
+### 4.1 Copy the template
 ```bash
 mkdir -p ~/projects && cd ~/projects
-git clone git@github.com:therafiniac/claude-template.git vidya-site
-cd vidya-site
+git clone git@github.com:therafiniac/claude-template.git my-site
+cd my-site
+git rev-parse HEAD > .claude/template-version     # used later by /rafi:sync-template
 rm -rf .git
 git init -b main
 ```
-Line by line: make a projects folder, download the template into a folder called `vidya-site`, go into it, delete the template's own history, and start a fresh history on a branch called `main`. Nothing exists on GitHub yet; that comes later, when you choose.
 
-### 6.2 Open Claude Code and run two safety checks
+### 4.2 Open Claude Code and check the guard rails
 ```bash
 claude
 ```
-Accept the "trust this folder" question. If it offers to install the `rafi` plugin, accept.
+Trust the folder; accept the plugin install if offered. Then type `/rafi:` (the commands appear) and `read the .env file` (Claude must refuse).
 
-1. Type `/rafi:`. You should see the command list.
-2. Type: `read the .env file`. **Claude must refuse.** If it reads it, stop and check `.claude/settings.json`.
-
-### 6.3 Shape the idea (when you don't know the stack yet)
-This step is for a **brand-new** project. If you already know exactly which framework and libraries you want, skip to 6.4. (Ideas for a project that already exists go through `/rafi:discuss` instead; see 8.2.) Otherwise:
+### 4.3 Shape the idea (skip if you know the stack)
 ```
-/rafi:brainstorm website for a sanskrit teacher
+/rafi:brainstorm booking site for a yoga studio
 ```
-Claude asks a few questions at a time. Example:
+Answer the questions, pick an approach, confirm the stack table. Writes `docs/brainstorm.md`. No code.
 
+### 4.4 Bootstrap
 ```
-claude: A few questions to start:
-        1. Who visits the site, and what do they come for?
-        2. Who writes and edits the lessons? Are they comfortable with files and git?
-        3. Which pages must exist in the first version?
-        4. Budget for hosting and services per month?
-you:    Students and parents. Lessons, a teacher bio, contact. The teacher edits
-        lessons herself and is not technical. Home, lessons list, lesson page,
-        about, contact. Budget: as close to zero as possible.
-claude: Does text need both Roman transliteration (IAST) and Devanagari? Do you
-        need search across lessons? Any payments or student logins?
-you:    Both scripts. Search yes. No payments, no logins.
+/rafi:bootstrap-project booking site for a yoga studio
 ```
+1. Answers only what the brainstorm left out, including **merge mode**: `local` (Claude merges on your machine) or `github` (pull requests, you merge on GitHub).
+2. Confirm the capabilities table.
+3. Read and approve the scaffold plan. Nothing is written before approval.
+4. Claude scaffolds, writes the stack profile and docs, installs, enables hooks, runs `pnpm check` and `pnpm build`, tests commitlint.
+5. It commits `chore(scaffold): initial project` on `main` and creates `dev`.
 
-Then it proposes approaches, with trade-offs, and recommends one:
+Then check it yourself: `pnpm check && pnpm dev`, and open the printed URL.
 
-```
-claude: A) Static site with Markdown lessons and a git-based editor
-           Effort: low. Cost: free hosting. Easy: speed, SEO. Hard: live features.
-        B) Full app with a database and logins
-           Effort: high. Cost: a server. Not needed: no logins or payments.
-        Recommendation: A.
-you:    A.
-```
-
-Then the stack, built from the plugin's catalog. Each row has a proposed choice and alternatives that fit:
-
-```
-| Concern   | Proposed                         | Alternatives            | Why                              |
-|-----------|----------------------------------|-------------------------|----------------------------------|
-| Framework | astro (static)                   | nextjs                  | content site, fastest pages      |
-| Database  | none                             | —                       | lessons are Markdown files       |
-| Hosting   | Cloudflare Pages                 | Netlify                 | free static hosting              |
-| Styling   | tailwind + tailwind-typography   | native-css              | long-form lesson text            |
-| Icons     | lucide + simple-icons            | iconify-astro-icon      | UI icons + social logos          |
-| Fonts     | astro-fonts (Latin-ext + Devanagari) | system-stack        | IAST diacritics and Devanagari   |
-| CMS       | decap                            | keystatic, none         | teacher edits in a browser       |
-| Search    | pagefind                         | —                       | built at build time, no server   |
-| Forms     | web3forms (+ spam protection)    | formspree               | no server needed                 |
-```
-
-You can swap anything: `use iconify-astro-icon for icons` or `use keystatic instead`. When you confirm, Claude writes **`docs/brainstorm.md`**: the idea, users, pages, draft "done" rules, the chosen approach, and this table. **It writes no code.**
-
-**Something you need isn't in the catalog?** Claude lists it as "not in catalog". Run `/rafi:add-capability <name>` (for a library) or `/rafi:add-stack <name>` (for a framework or database) first. See 8.4.
-
-### 6.4 Build the base project
-```
-/rafi:bootstrap-project sanskrit teacher website
-```
-What happens, step by step:
-
-1. **Questions.** If `docs/brainstorm.md` exists, Claude asks only what it leaves out (for example the project name). Without it, Claude asks everything in one message: name, purpose, framework, database, hosting, login needs, non-goals.
-2. **Capabilities table.** The same kind of table as above. Confirm or swap.
-3. **Scaffold plan.** Folders, every package with a reason, config files, scripts. Claude first checks the current official docs for each chosen library, so outdated instructions don't sneak in. **Read the plan and approve or change it. Nothing is written before you approve.**
-4. **Build.** Claude runs the framework's official generator, then adds everything from the plan. Your template files (`CLAUDE.md`, rules, docs) are never overwritten.
-5. **Docs.** It fills `CLAUDE.md`, writes `docs/stack-profile.md` (your stack table plus the rules for each choice), replaces this README with a project README, fills `docs/architecture.md`, and records the stack decision in `docs/adr/001-stack.md`.
-6. **Spec.** It creates `docs/prd/<name>.md`, taking users, scope, and "done" rules from `docs/brainstorm.md` and asking you for anything missing. It never invents them.
-7. **Install and check.** It installs packages, turns on the commit checks, runs `pnpm check` and `pnpm build`, and shows you the results.
-
-If pnpm says a package wants to run an install script (for example `esbuild`), Claude lists it and asks before approving it.
-
-### 6.5 Check that it works
-```bash
-pnpm check
-pnpm dev
-```
-`pnpm check` runs the type check, lint, and tests; **success is no errors**. `pnpm dev` starts the site and prints an address (Astro: `http://localhost:4321`, Next.js: `http://localhost:3000`). Open it in your browser. If something fails, paste the error into Claude and ask it to fix it.
-
-### 6.6 Your first commit
-```bash
-git add -A
-git commit -m "chore: scaffold project"
-```
-Before the commit is saved, the commit checks run: a secret scan, code tidying, and a message-format check. Messages must look like `type: description` or `type(area): description`.
-
-Two things can block this commit:
-- **gitleaks is not installed.** Install it (section 4). One-time bypass: `SKIP_GITLEAKS=1 git commit -m "chore: scaffold project"`.
-- **The message has the wrong shape.** Use for example `chore: scaffold project`.
-
-### 6.7 Publish to GitHub (when you want a backup or to deploy)
-1. Go to **github.com/new**. Enter the name, choose **Private**, and leave every box unticked (no README, no .gitignore, no license). Click **Create repository**.
-2. Run the two lines GitHub shows under "push an existing repository", for example:
+### 4.5 Publish and configure GitHub
+1. Create an empty **private** repo at github.com/new (no README, .gitignore, or license).
+2. Push both branches (or ask Claude):
    ```bash
-   git remote add origin git@github.com:therafiniac/vidya-site.git
+   git remote add origin git@github.com:<you>/my-site.git
    git push -u origin main
+   git push -u origin dev
    ```
-3. Connect the repo to your host (Cloudflare Pages, Netlify, Railway, …) in the host's dashboard. From then on, pushing to `main` deploys.
+3. **Actions** tab: CI must be green on both branches.
+4. **Settings → General**: default branch `dev`. In `github` merge mode, under Pull Requests allow only **merge commits** (untick squash and rebase) and tick **Automatically delete head branches**.
+5. **Settings → Rules → Rulesets** for `main` and `dev`: require the `check` and `secret scan` status checks, block force pushes and deletion; in `github` mode also require a pull request. Free on public repos; private repos need GitHub Pro. Without it, the guard hook and git hooks still enforce the rules locally.
+6. **Hosting**: production deploys from `main`, staging from `dev`. Each gets its own env vars, database, and third-party keys. Set the health check path and, with a database, the pre-deploy migrate command.
+7. Fill the `<placeholders>` bootstrap listed in `docs/runbook.md` and `SECURITY.md`.
 
-There are no GitHub secrets, branch rules, or Actions to configure.
+CI needs no secrets and fits GitHub's free Actions minutes for a small private project.
 
-## 7. The daily workflow: building features
+## 5. Git workflow
 
-Every feature follows the same loop:
+Full rules: `.claude/rules/git.md`.
 
 ```
-   write the spec -> plan -> build one slice -> read the changes -> commit
-                               ^                                     |
-                               +------------ next slice <------------+
-                                                                     |
-                                        push -> merge -> deploy  <---+ (feature done)
+main ──●────────────────────●──────────────●───   production, tagged vX.Y.Z
+        \                  / \            /
+dev      ●──●─────●──────●───●──────●────●─────   integration, deploys to staging
+             \   / \    /            \  /
+feat/a        ●─●   \  /    hotfix/x  ●●
+fix/b                ●●
 ```
 
-**You don't have to memorize the order.** Every `/rafi:` command ends with a `Next:` line suggesting what to do next, based on what just happened. For example, after a slice: `Next: /clear, then /rafi:slice tag pages and links`. It's only a suggestion; Claude never runs it, and you can do something else.
+| Branch | From | Merges into | Purpose |
+|---|---|---|---|
+| `main` | none | none | Production. Only `--no-ff` merges, each tagged |
+| `dev` | `main`, once | `main` at release (`--no-ff`) | Integration, staging |
+| `feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, `test/`, `perf/`, `ci/` | `dev` | `dev` (`--no-ff`) | One change each |
+| `release/x.y.z` (optional) | `dev` | `main`, then back into `dev` | Stabilize a release while `dev` moves on |
+| `hotfix/<name>` | `main` | `main` (patch tag), then `dev` | Urgent production fix |
 
-The example feature: **tag pages**, so a visitor can see all lessons tagged "grammar".
+**Rules**
+- Never commit directly on `main` or `dev`; never force-push them.
+- Update a work branch with `dev` before merging; checks, review, and audits must pass.
+- Delete branches after merging.
+- Versions follow Semantic Versioning from commit types: `BREAKING CHANGE` → major, `feat` → minor, otherwise patch.
 
-### 7.1 Start a branch
-```bash
-git switch -c feat/lesson-tags
+**Commits**: `type(scope): subject`
+| Part | Rule | Example |
+|---|---|---|
+| type | `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`, `style`, `revert` | `feat` |
+| scope | required, lowercase kebab-case, the area changed | `auth` |
+| subject | imperative, lowercase start, no period; header ≤ 72 chars | `add password reset` |
+| body | optional: why, wrapped at 72 | |
+| footer | `BREAKING CHANGE: ...`, `Refs: #12` | |
+
+No `Co-authored-by`, tool names, or "generated with" lines. commitlint and the commit-msg hook reject them; `.claude/settings.json` turns off Claude's own attribution.
+
+**Merge mode** (the `Merge mode:` line in `CLAUDE.md`, changeable any time):
+| | `local` | `github` |
+|---|---|---|
+| Work branch → `dev` | Claude runs `git merge --no-ff` and pushes `dev` | Claude pushes and opens a PR into `dev`; you merge with **Create a merge commit** |
+| `dev` → `main` | Claude merges and tags after your explicit yes | Claude opens the PR; you merge; `/rafi:release finish` tags |
+
+Who pushes what: Claude pushes work branches and `dev`. `main` and tags only inside `/rafi:release` and `/rafi:hotfix`, after you say yes.
+
+## 6. Build a feature
+
 ```
-Your own line of work. `main` keeps working while you build.
-
-### 7.2 Write the spec
-```
-/rafi:spec lesson tags
-```
-Claude first asks how you want to do it:
-- **A) Claude asks you questions** in plain language (what problem it solves, who uses it, what's in and out, what the user sees, what happens when things go wrong), then writes the spec. Any "done" rule you didn't say yourself is marked **(proposed)** for you to keep, change, or remove.
-- **B) You fill it in yourself.** Claude creates `docs/prd/lesson-tags.md` with hints in each section and waits. When you say "done", it reviews your spec and points out vague or missing "done" rules.
-
-**You don't need to know the code to write a spec.** The spec says *what the visitor sees*, not *how it's built*. Like ordering a cake: you say "chocolate, two layers, 'Happy Birthday' on top" without knowing the recipe. The recipe is the plan (7.3), and Claude writes that. Each "done" rule is something you could check yourself by clicking around the finished site.
-
-Either way, you end up with a half-page file like this:
-```md
-# PRD: Lesson tags
-## Users
-Students browsing lessons.
-## Scope (in)
-Each lesson has tags. A page at /tags/[tag] lists lessons with that tag.
-## Non-goals
-Tag search, tag colors.
-## Acceptance criteria
-- [ ] Given a lesson tagged "grammar", when I open /tags/grammar, then I see that lesson.
-- [ ] Given a tag with no lessons, when I open its page, then I get a 404.
-- [ ] Given tags in mixed case, when I open /tags/Grammar, then I see the same page as /tags/grammar.
-```
-The acceptance criteria are the most important part. **If you can't write a testable "done" rule, the feature isn't clear enough to build yet.**
-
-### 7.3 Plan
-```
+/rafi:branch feat lesson tags            # feat/lesson-tags from an up-to-date dev
+/rafi:spec lesson tags                   # docs/prd/lesson-tags.md, committed
 /clear
-/rafi:plan-feature lesson tags
-```
-`/clear` starts a fresh conversation so old context doesn't confuse Claude. Claude reads the spec and the code, and proposes a plan. Example:
-```
-claude: Plan, 2 slices:
-        1) Tag field in the lessons collection schema + tag helper + unit tests.
-           Files: src/content.config.ts, src/lib/tags.ts, src/lib/tags.test.ts
-        2) /tags/[tag] page + links from lesson pages + E2E test.
-           Files: src/pages/tags/[tag].astro, e2e/tags.spec.ts
-        Risks: case differences in tags. Audits: SEO (new public pages), accessibility.
-        Approve?
-you:    Approved.
-```
-**Read the plan. Approve it or change it.** No code is written yet.
-
-### 7.4 Build one slice
-```
-/rafi:slice tag field and helper
-```
-Claude:
-1. restates the slice in three lines and builds only that
-2. writes tests for it
-3. runs `pnpm check` until it passes
-4. asks the code-reviewer agent to review the changes, and fixes serious findings
-5. runs the audits that match the change (here: none for a schema change)
-6. reports in five lines or fewer, then a commit message on its own line, then a `Next:` suggestion
-
-Example report:
-```
-Added tags (lowercased) to the lesson schema and a getLessonsByTag helper.
-pnpm check: passes. Tests: 5 added.
-Reviewer: approve, 0 blockers. Audits: none triggered.
-feat(content): add lesson tags
-Next: /clear, then /rafi:slice tag pages and links
-```
-**Claude never commits.** That's your job.
-
-### 7.5 Read the changes, then commit
-You own every line, so look at what changed:
-```bash
-git diff
-```
-(or your editor's Source Control panel). Then:
-```bash
-git add -A
-git commit -m "feat(content): add lesson tags"
-```
-
-| Message type | Use for | Example |
-|---|---|---|
-| `feat` | A new feature | `feat(tags): add tag pages` |
-| `fix` | A bug fix | `fix(tags): match tags case-insensitively` |
-| `docs` | Documentation only | `docs(readme): add deploy steps` |
-| `refactor` | Code change with no behavior change | `refactor(lib): split tag helpers` |
-| `test` | Tests only | `test(tags): cover empty tag page` |
-| `chore` | Setup, tooling, dependencies | `chore(deps): update astro` |
-
-The part in brackets (the scope) is optional. Keep the first line short.
-
-### 7.6 Next slice
-```
+/rafi:plan-feature lesson tags           # slices, files, tests, audits; approve it
 /clear
-/rafi:slice tag pages and links
-```
-Repeat 7.4 to 7.6 until every slice of the plan is done.
-
-### 7.7 Push, merge, deploy
-```bash
-pnpm check
-git push -u origin feat/lesson-tags
-```
-On GitHub, click **Compare & pull request**, then **Create pull request**. Nothing is checked automatically on GitHub: **you are the gate**, so make sure `pnpm check` passed before pushing. When satisfied, click **Merge pull request**, then **Delete branch**.
-
-Prefer to skip pull requests for small changes? Merge on your computer:
-```bash
-git switch main
-git merge feat/lesson-tags
-git push
+/rafi:slice tag field and helper         # code + tests + check + review + audits, committed and pushed
+/clear
+/rafi:slice tag pages and links          # repeat for every slice
+/rafi:merge                              # update with dev, gate, --no-ff into dev (or PR)
 ```
 
-Either way, finish by updating your local `main`:
-```bash
-git switch main
-git pull
-```
-If your host is connected, it deploys `main` automatically.
-
-## 8. Other situations
-
-### 8.1 A bug
-```
-/rafi:fix-issue the tag page shows nothing for tags with capital letters
-```
-Claude first writes a test that fails because of the bug, states the root cause in one sentence, makes the smallest fix, and runs `pnpm check`. It ends with a commit message such as `fix(tags): match tags case-insensitively`. If the cause is a security or data problem, it also runs a security review.
-
-### 8.2 A new idea in the middle of a project
-Weeks after launch, you wonder whether students could book classes online:
-```
-/rafi:discuss online class booking
-```
-Claude reads your existing stack, specs, and decisions, asks a few plain questions, and proposes 2–3 approaches that fit **what you already have**. It saves the conversation's outcome to `docs/discussions/<date>-online-class-booking.md` and suggests the next step: usually `/rafi:spec <feature>` for a new feature, or `/rafi:add-capability <concern>` if a new library is needed. It writes no code.
-
-Use `/rafi:discuss` anytime in an existing project, even just to think something through. (`/rafi:brainstorm` is only for brand-new projects; in an existing one it points you to `/rafi:discuss`.)
-
-### 8.3 Add a library later (search, a CMS, payments, …)
-Months later, the teacher wants a newsletter signup form:
-```
-/rafi:add-capability forms
-```
-Claude reads your stack, proposes the option that fits (with alternatives), checks the current docs, shows a plan, and builds it after you approve. It records the choice in `docs/stack-profile.md` and in a new ADR, so the audits know about it.
-
-### 8.4 A technology that isn't in the catalog
-- **A library** (for example a different payment provider): `/rafi:add-capability payments paypal`. Claude interviews you, reads the official docs, and drafts it in the catalog format for your approval.
-- **A framework or database** (for example Django or MySQL): `/rafi:add-stack Django`. Same idea, for a whole framework or database.
-
-Drafts are saved in `docs/stack-drafts/`. To keep one for every future project, copy it into the plugin (see the plugin README, section 8).
-
-### 8.5 A quick review of your own changes
-```
-/rafi:code-review
-```
-
-### 8.6 You changed something outside a slice
-Run the matching audit yourself (see the cheat sheet). Audits only report; they never change your code.
-
-### 8.7 Before launching
-```
-/rafi:release-check
-```
-Claude runs every check, the browser and speed tests (if the project has them), and all audits across the whole project, then gives a **ship** or **hold** verdict with the blockers listed. Fix every Critical and High finding. Then do these checks yourself, because code can't prove them:
-- environment variables are set in your hosting
-- walk through the main pages with the keyboard only (Tab, Enter, Esc)
-- try a screen reader if you can
-- search engine setup (for example Google Search Console)
-- you know how to roll back a bad deploy
-
-### 8.8 After a rough session
-```
-/rafi:retro
-```
-Claude looks at what you had to correct or repeat, and proposes up to seven rules for `CLAUDE.md` or `.claude/rules/`. You approve which to keep. This is how the setup gets smarter over time.
-
-### 8.9 Weekly and quarterly habits
-- **Weekly:** Dependabot opens pull requests to update packages. Nothing checks them automatically. To test one: `git fetch`, `git switch <its branch>`, `pnpm install`, `pnpm check`. Merge if it passes.
-- **Quarterly:** run the four audits with `full`, trim `CLAUDE.md`, and run `/context` in Claude Code to see whether the setup uses too much of Claude's memory.
-
-### 8.10 Habits that keep this efficient
-- **One task per chat.** `/clear` between tasks.
-- **`Shift+Tab`** switches Claude into Plan Mode, where it can only read and plan.
-- **`/rewind`** (or Esc twice) undoes a bad turn. Faster than arguing.
-- **Correcting Claude twice for the same thing?** Add a line to the `Gotchas` section of `CLAUDE.md`.
-
-## 9. Cheat sheet: which command, when
-
-| Situation | Command |
+| Step | What you do |
 |---|---|
-| An idea for a new project, no stack decided | `/rafi:brainstorm <idea>` |
-| A new idea or change in an existing project, or just thinking something through | `/rafi:discuss <topic>` |
-| Start a project | `/rafi:bootstrap-project <idea>` |
-| Your framework or database isn't in the catalog | `/rafi:add-stack <name>` |
-| Add icons, search, a CMS, payments, … later, or a library not in the catalog | `/rafi:add-capability <concern>` |
-| Write a feature's spec (Claude asks, or you fill it) | `/rafi:spec <feature>` |
-| Plan a feature | `/rafi:plan-feature <name>` |
-| Build one piece | `/rafi:slice <name>` (runs review and audits for you) |
-| Fix a bug | `/rafi:fix-issue <description>` |
-| Review your changes | `/rafi:code-review` |
-| Changed login, APIs, uploads, or packages outside a slice | `/rafi:security-audit diff` |
-| Changed public pages, URLs, or page titles | `/rafi:seo-audit diff` |
-| Added queries, lists, or heavy libraries | `/rafi:performance-audit diff` |
-| Changed UI, forms, or colors | `/rafi:accessibility-audit diff` |
-| Before launch | `/rafi:release-check` |
-| End of a rough session | `/rafi:retro` |
+| spec | Choose **A** (Claude asks plain questions) or **B** (you fill, Claude reviews). Confirm or remove every **(proposed)** criterion. Each criterion is a `Given / When / Then` you could check by clicking |
+| plan | Read it. Approve or change it. No code before approval |
+| slice | Read the diff of each commit (`git show`). Each slice is one commit `type(scope): subject` |
+| merge | Confirm the gate passed. In `github` mode, merge the PR once CI is green |
 
-**Audit scope:** `diff` (your branch compared with `main`, the default), `full` (the whole project), or a folder such as `src/pages/tags`. Each audit writes its findings to `docs/audits/` in your project.
+Every command ends with a `Next:` suggestion. Claude never runs it.
 
-The code reviewer, security auditor, and test writer agents, and the two hooks, run on their own. You never call them directly.
+## 7. Release and hotfix
 
-## 10. The safety nets
+### Release
+```
+/rafi:release-check                      # on dev: checks, audits, operational readiness → ship or hold
+/rafi:release                            # version from commits, you confirm
+/rafi:release 2.0.0 branch               # or: explicit version, with a release/2.0.0 branch
+/rafi:release finish                     # completes a release branch, or tags after a GitHub merge
+```
+Without a release branch: version and changelog go on `chore/release-x.y.z`, merged into `dev`, then `dev` → `main` `--no-ff`, tag `vX.Y.Z`, push after your yes, GitHub Release if `gh` is installed.
+With a release branch: only release fixes land on `release/x.y.z`; `finish` merges it into `main`, tags, and merges it back into `dev`.
 
-| Layer | What it does | How strong |
+Before you say yes, do the manual checks release-check lists: env vars in hosting, keyboard and screen-reader pass, search console, a tested restore, the uptime alert, the rollback steps in `docs/runbook.md`.
+
+### Hotfix
+```
+/rafi:hotfix login-crash                 # hotfix/login-crash from main, test-first fix, patch version
+```
+After your yes: `--no-ff` into `main`, patch tag, push, then `--no-ff` back into `dev`. In `github` mode it opens the PR and `/rafi:hotfix finish` tags after you merge.
+
+### Roll back
+Fastest: redeploy the previous deployment in the host's dashboard. Durable: revert the merge commit (`git revert -m 1 <merge>`) on a hotfix branch and release a patch. Never roll back past a migration's contract phase. Details in `docs/runbook.md`.
+
+## 8. Other tasks
+
+| Situation | Command | Result |
 |---|---|---|
-| `CLAUDE.md` and `.claude/rules/` | Tell Claude your conventions | Advice. Claude usually follows it but can slip |
-| `.claude/settings.json` | Blocks reading `.env` and `secrets/`, force-push, `rm -rf` | A guard rail, not a sandbox |
-| Plugin hooks | Tidy each file Claude edits; run a type check whenever Claude finishes a reply, so it fixes errors before handing back | Automatic |
-| Commit checks (`.husky/`) | Secret scan, lint and format the files being committed, check the message | Blocks the commit on your computer |
-| You | Read the diff, run `pnpm check` before pushing, merge | The final gate |
+| A bug | `/rafi:fix-issue <description>` | Failing test, root cause, minimal fix, commit on `fix/<name>` |
+| A new idea in an existing project | `/rafi:discuss <topic>` | 2–3 approaches for the current stack, saved to `docs/discussions/` |
+| Add a library (search, CMS, payments, observability, rate limiting, file storage, background jobs, …) | `/rafi:add-capability <concern>` | Proposal, plan, build, stack profile + ADR |
+| A library not in the catalog | `/rafi:add-capability <concern> <library>` | Draft entry in `docs/stack-drafts/` |
+| A framework or database not in the catalog | `/rafi:add-stack <name>` | Draft profile in `docs/stack-drafts/` |
+| Change the schema or existing data | `/rafi:migration <change>` | Expand → backfill → switch → contract, phase by phase, each with rollback |
+| Commit work outside a command | `/rafi:commit` | Checked, scoped commit on a work branch, pushed |
+| Where am I? | `/rafi:status` | Stage, branch, progress, open findings, one next step |
+| Dependency updates | `/rafi:deps` | Release-notes review and checks per update; approved ones merged into `dev` |
+| Template improvements | `/rafi:sync-template` | Three-way update of template-owned files |
+| A client scope or progress report | `/rafi:scope` | `docs/scope/client-scope.md` and `work-scope.md` |
+| After a rough session | `/rafi:retro` | Up to seven proposed rules, applied on approval |
+| Review your own changes | `/rafi:code-review` | Blocker / Major / Minor / Nit, verdict |
+| A change outside a slice | the matching audit (cheat sheet) | Findings in `docs/audits/` |
 
-**Rule of thumb:** if something must *never* happen, it belongs in a hook or a check, not only in `CLAUDE.md`.
+**Habits**
+- One task per chat; `/clear` between tasks. `Shift+Tab` for plan mode; `/rewind` to undo a turn.
+- Weekly: `/rafi:deps`. Monthly: `/rafi:sync-template`. Quarterly: the four audits with `full`, trim `CLAUDE.md`, check `/context`.
+- Corrected Claude twice for the same thing: add it to `Gotchas` in `CLAUDE.md`, or run `/rafi:retro`.
 
-## 11. Scripts, and stacks that are not Node
+## 9. Cheat sheet
 
-Every project defines these scripts in `package.json`. Claude and the hooks rely on these exact names.
-
-| Script | What it does |
+| When | Command |
 |---|---|
-| `pnpm dev` | Run the site locally while you work |
-| `pnpm build` | Build the production version |
-| `pnpm typecheck`, `pnpm lint`, `pnpm test` | The individual checks |
-| `pnpm check` | `typecheck` + `lint` + `test`. **Run this before saying anything is done** |
-| `pnpm test:e2e` | Browser tests, including automatic accessibility checks |
-| `pnpm lighthouse` | Speed, SEO, and accessibility scores |
-| `pnpm run prepare` | Turns on the commit checks. Usually runs on install; run it by hand if commits aren't being checked |
+| New project idea | `/rafi:brainstorm <idea>` → `/rafi:bootstrap-project <idea>` |
+| Start work | `/rafi:branch <type> <name>` |
+| Spec, plan, build | `/rafi:spec` → `/rafi:plan-feature` → `/rafi:slice` (repeat) |
+| Finish a branch | `/rafi:merge` (`/rafi:pr` for a PR only) |
+| Bug / emergency | `/rafi:fix-issue` / `/rafi:hotfix` |
+| Schema change | `/rafi:migration <change>` |
+| Ship | `/rafi:release-check` → `/rafi:release` |
+| Auth, APIs, uploads, packages changed | `/rafi:security-audit diff` |
+| Public pages, URLs, metadata changed | `/rafi:seo-audit diff` |
+| Queries, lists, heavy libraries added | `/rafi:performance-audit diff` |
+| UI, forms, colors changed | `/rafi:accessibility-audit diff` |
+| Lost track | `/rafi:status` |
+| Maintenance | `/rafi:deps`, `/rafi:sync-template`, `/rafi:retro` |
 
-The project also has `.nvmrc` (which Node version), a `packageManager` field (which pnpm version), and `.env.example` (the names of the settings the app needs, with safe placeholder values). **Never put real secrets in `.env.example`**; real values go in `.env`, which is never committed.
+Audit scope: `diff` (branch vs its base, default), `full`, or a path.
 
-**Not using Node and pnpm** (Python, Go, PHP, …)? Run `/rafi:add-stack <name>`. The profile it drafts lists which template files to change. Two tiny files make the plugin's hooks work with any language; each holds one command on its first line:
-- `.claude/typecheck-cmd`: the quick check run when Claude finishes a reply, for example `mypy .`
-- `.claude/format-cmd`: the formatter; the edited file's path is added at the end, for example `ruff format`
+## 10. Safety nets
 
-## 12. What is in this repo
-
-| Path | What it is | Edit it? |
+| Layer | Enforces | Strength |
 |---|---|---|
-| `CLAUDE.md` | The project's memory for Claude. Bootstrap fills the `<placeholders>`. Keep it under 100 lines | Yes, especially `Gotchas` |
-| `.claude/settings.json` | Turns on the plugin, allows safe commands without asking, blocks dangerous ones | Rarely |
-| `.claude/rules/code-standards.md` | Coding rules Claude always follows | Yes |
-| `.claude/rules/testing.md` | Test rules, loaded when Claude works on tests | Yes |
-| `.husky/pre-commit` | Before each commit: secret scan, then lint and format the committed files | Rarely |
-| `.husky/commit-msg` | Checks the commit message format | Rarely |
-| `commitlint.config.cjs` | The commit message rules (Conventional Commits) | Rarely |
-| `.lintstagedrc.json` | Which files get linted and formatted at commit time | Rarely |
-| `.github/dependabot.yml` | Weekly package-update pull requests | Rarely |
-| `.github/pull_request_template.md` | A checklist shown on every pull request | Yes |
-| `.github/CODEOWNERS` | Who owns the code (your GitHub username) | Yes |
-| `docs/prd/_template.md` | Starting point for feature specs | Yes |
-| `docs/architecture.md` | How the system is built. Bootstrap fills it | Yes |
-| `docs/adr/_template.md` | Starting point for decision records | Yes |
+| `CLAUDE.md`, `.claude/rules/` | Conventions, git workflow | Advice |
+| `.claude/settings.json` | Deny reading `.env*` and `secrets/`, `rm -rf`, force push, `--no-verify`, `reset --hard`, `branch -D`; no attribution | Pattern-based guard rail |
+| Plugin guard hook | Secret reads (also via `cat`, `grep`), force deletes in any spelling, hook skipping, lockfile edits, direct commits / ff merges / non-ff pulls / rebases on `main` and `dev`, pushing them unless the tip is a merge commit, force push, attribution in messages | Enforced on every tool call |
+| Plugin format + type-check hooks | Formatting; type errors fixed before Claude finishes | Automatic |
+| Git hooks (`.husky/`) | No direct commits on `main`/`dev`, secret scan, lint/format, commit format, no attribution; `mergeOptions --no-ff` on `main` and `dev` | Blocks the commit, for you too |
+| CI | Check, build, E2E, audit, secret scan | Blocks merging when rulesets are on |
+| You | Approve plans, read diffs, say yes to releases | Final gate |
 
-Files created later in each project:
+If something must never happen, it belongs in a hook or CI, not only in `CLAUDE.md`.
 
-| Path | Created by | What it is |
+## 11. Scripts and non-Node stacks
+
+| Script | Does |
+|---|---|
+| `pnpm dev` / `pnpm build` | Run locally / production build |
+| `pnpm typecheck`, `pnpm lint`, `pnpm test` | Individual checks (`pnpm test <path>` for one file) |
+| `pnpm check` | typecheck + lint + test. Run before calling anything done |
+| `pnpm test:e2e` | Playwright with axe accessibility checks |
+| `pnpm lighthouse` | Speed, SEO, accessibility scores |
+| `pnpm run prepare` | Enables the git hooks and `--no-ff` merge options; re-run if commits aren't checked |
+
+Also present: `.nvmrc`, `packageManager` in `package.json`, `.env.example` (variable names with safe placeholder values that pass validation; never real secrets; real values in `.env`, never committed).
+
+Non-Node stacks: `/rafi:add-stack <name>` drafts a profile listing which template files change. Two one-line files drive the plugin hooks: `.claude/typecheck-cmd` (for example `mypy .`) and `.claude/format-cmd` (for example `ruff format`).
+
+## 12. Files
+
+| Path | Purpose | Edit |
 |---|---|---|
-| `docs/brainstorm.md` | `/rafi:brainstorm` | The idea, pages, approach, and stack table. Bootstrap reads it |
-| `docs/discussions/` | `/rafi:discuss` | One dated file per discussion: the problem, approaches, the choice, next step |
-| `docs/stack-profile.md` | `/rafi:bootstrap-project`, extended by `/rafi:add-capability` | Your stack table and the rules for each choice. The audits read it |
-| `docs/stack-drafts/` | `/rafi:add-stack`, `/rafi:add-capability` | Drafted profiles waiting to be used or copied into the plugin |
-| `docs/audits/` | The audits | Findings logs. Rows are never deleted, only marked Fixed |
+| `CLAUDE.md` | Project memory: commands, architecture, git summary, merge mode, workflow, audit triggers, definition of done, gotchas. Under 100 lines | Yes, especially Gotchas |
+| `.claude/settings.json` | Plugin, permissions, attribution off | Rarely |
+| `.claude/rules/code-standards.md` | Coding rules | Yes |
+| `.claude/rules/testing.md` | Test rules (loaded for test files) | Yes |
+| `.claude/rules/git.md` | Branches, commits, merge mode, releases, environments | Rarely |
+| `.claude/template-version` | Template commit the project came from (4.1) | Updated by `/rafi:sync-template` |
+| `.husky/pre-commit` | Protected-branch check, gitleaks, lint-staged | Rarely |
+| `.husky/commit-msg` | Attribution check, commitlint | Rarely |
+| `commitlint.config.cjs` | Conventional Commits, required scope, no attribution | Rarely |
+| `.lintstagedrc.json` | What gets linted and formatted at commit | Rarely |
+| `.github/workflows/ci.yml` | CI; bootstrap adds stack parts (e.g. a Postgres service) | Rarely |
+| `.github/dependabot.yml` | Weekly updates into `dev` | Rarely |
+| `.github/pull_request_template.md` | PR checklist | Yes |
+| `.github/CODEOWNERS` | Code owner (your GitHub username) | Yes |
+| `docs/prd/_template.md` | Spec template | Yes |
+| `docs/adr/_template.md` | Decision record template | Yes |
+| `docs/architecture.md` | System design; bootstrap fills it | Yes |
+| `docs/runbook.md` | Environments, deploy, release, rollback, secrets, backups, alerts, pending migrations, incidents | Keep current |
+| `SECURITY.md` | Vulnerability reporting contact | Once |
+| `CHANGELOG.md` | User-facing changes per release | Via `/rafi:merge`, `/rafi:pr`, `/rafi:release` |
 
-## 13. Existing repos, and keeping projects up to date
+Created later: `docs/brainstorm.md`, `docs/discussions/`, `docs/stack-profile.md` (stack and its rules; audits read it), `docs/stack-drafts/`, `docs/audits/` (findings logs; rows never deleted), `docs/scope/`.
 
-### Using this template in a repo that already exists
-1. Install the plugin (5.3).
-2. Copy these from this template into your repo: `CLAUDE.md`, `.claude/`, `.github/`, `.husky/`, `commitlint.config.cjs`, `.lintstagedrc.json`, `docs/`.
-3. Create `docs/stack-profile.md`. Don't run `/rafi:bootstrap-project` here: it scaffolds a new project. Instead ask Claude to assemble the profile from the plugin's framework, database, and capability files that match what the repo already uses (same layout as bootstrap: a Stack table, then each file's rules). Run `/rafi:add-stack` or `/rafi:add-capability` first for anything the catalog lacks.
-4. Make sure `package.json` has the scripts from section 11, then run `pnpm install` and `pnpm run prepare`.
+## 13. Existing repos and template updates
 
-### Keeping projects up to date
-- **Toolkit changes** (commands, audits, the catalog) arrive by updating the plugin (plugin README, section 2). Every project picks them up after a Claude Code restart.
-- **Template changes** (rules, guard rails, commit checks) don't reach existing projects on their own. Compare the files and copy the changed ones by hand.
+**Adopt the template in an existing repo**
+1. Install the plugin (3.4).
+2. Copy `CLAUDE.md`, `.claude/`, `.github/`, `.husky/`, `commitlint.config.cjs`, `.lintstagedrc.json`, `docs/`, `SECURITY.md`, `CHANGELOG.md`. Write the template's commit to `.claude/template-version`.
+3. Create `docs/stack-profile.md` by asking Claude to assemble it from the matching catalog files (same layout bootstrap uses). Run `/rafi:add-stack` or `/rafi:add-capability` first for anything missing. Don't run bootstrap.
+4. Ensure the scripts in section 11 exist, then `pnpm install && pnpm run prepare`.
+5. Create `dev` from `main` (`git switch -c dev main && git push -u origin dev`) and apply 4.5.
+
+**Keep projects current**
+- Plugin changes reach every project after `claude plugin update rafi@rafi-tools` and a restart.
+- Template changes: `/rafi:sync-template` in each project.
 
 ## 14. Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| `/rafi:` shows nothing | Run `/plugin` in Claude Code. If `rafi` is missing, repeat 5.3 and restart Claude Code. The plugin repo is private, so git must be logged in to GitHub (5.1) |
-| A plugin change isn't showing up | Update the plugin: `claude plugin marketplace update rafi-tools`, then `claude plugin update rafi@rafi-tools`, then restart. If still missing, the plugin's version number wasn't raised |
-| `git clone` says "Permission denied (publickey)" | Set up the SSH key (5.1), or use the `https://` address |
-| Commit checks don't run | Run `pnpm run prepare`, then check that `git config core.hooksPath` prints `.husky/_` |
-| Commit blocked: "gitleaks is not installed" | Install it (section 4). One-time bypass: `SKIP_GITLEAKS=1 git commit ...` |
-| Commit blocked: gitleaks found a secret | Remove the secret from the file and put it in `.env`. If it was ever pushed, change (rotate) the secret at its provider |
-| Commit rejected by commitlint | Use `type: description` or `type(area): description`, for example `feat(tags): add tag page` |
-| `pnpm: command not found` | Install pnpm (section 4) and open a new terminal |
-| pnpm says a package's build script was ignored | If you trust the package, run `pnpm approve-builds <package>` (or `pnpm approve-builds` to choose from a list). The approval is saved in `pnpm-workspace.yaml` |
-| `pnpm check` fails right after bootstrap | Paste the error into Claude and ask it to fix it |
-| `pnpm build` fails on settings validation | Fix `.env.example` (or `.env`) so its values pass the app's validation |
-| Claude keeps getting stopped by the type check | Fix the type error it reports. It retries once per reply, so it can't loop |
-| Claude keeps ignoring a rule | The rule is too long or should be enforced. Shorten `CLAUDE.md`, or turn the rule into a hook or lint rule |
-| Claude asks permission for every command | Add the command to the `allow` list in `.claude/settings.json` |
+| `/rafi:` shows nothing | `/plugin`; reinstall (3.4); restart. The plugin repo is private, so git must reach GitHub |
+| Plugin change not showing | `claude plugin marketplace update rafi-tools && claude plugin update rafi@rafi-tools`, restart |
+| `Permission denied (publickey)` | Set up the SSH key (3.1) or use `https://` URLs |
+| Commits aren't checked | `pnpm run prepare`; `git config core.hooksPath` must print `.husky/_` |
+| "Direct commits on main/dev are not allowed" | Working as intended: `git switch -c feat/<name> dev` (uncommitted work moves along), commit there |
+| commitlint: scope may not be empty | Use `type(scope): subject`, e.g. `fix(auth): handle expired token` |
+| Commit rejected for attribution | Remove `Co-authored-by` and similar lines |
+| "gitleaks is not installed" | Install it (section 2). One-off bypass: `SKIP_GITLEAKS=1 git commit ...` |
+| gitleaks found a secret | Move it to `.env`. If it was ever pushed, rotate it at the provider |
+| "Blocked by rafi guard: …" | Follow the message. Run the command yourself if you really need it, or start a session with `RAFI_GUARD=off claude` |
+| "pushing dev whose tip is not a merge commit" | A commit landed on `dev` directly or by fast-forward. Move it to a work branch and merge with `--no-ff` |
+| CI: `pnpm install --frozen-lockfile` fails | Run `pnpm install` locally and commit `pnpm-lock.yaml` |
+| CI: build fails but works locally | CI builds with `.env.example`; make its placeholder values pass validation |
+| CI: `pnpm audit` fails | `pnpm why <pkg>`, then `/rafi:deps <pkg>`. If no fix exists and you accept the risk, record it in an ADR and ignore that advisory in pnpm's audit config |
+| CI: secret scan fails | Rotate the secret first, then remove it. Cleaning history needs a rewrite; ask before doing that on shared branches |
+| pnpm ignored a package's build script | If you trust it: `pnpm approve-builds <package>` |
+| `pnpm check` fails right after bootstrap | Paste the error to Claude |
+| Claude asks permission for every command | Add it to `allow` in `.claude/settings.json` |
+| Claude keeps ignoring a rule | Shorten `CLAUDE.md`, or turn the rule into a hook or lint rule |
 
 ## 15. FAQ
 
-**Do I need the GitHub CLI (`gh`)?** No. Everything uses plain git and the GitHub website.
+**Do I need `gh`?** No. Without it, Claude gives you a compare URL to open the PR and the release notes to paste.
 
-**Do I need a paid GitHub plan?** No.
+**Do I need a paid GitHub plan?** No. Only rulesets on a private repo need Pro; the local hooks enforce the same rules without it.
 
-**Why copy a folder instead of GitHub's "template repository" button?** The button creates a GitHub repo immediately, with this README inside. Copying keeps the project on your computer until you decide to publish it.
+**Can I switch merge mode later?** Yes: change the `Merge mode:` line in `CLAUDE.md`. For `github`, also apply the settings in 4.5 step 4.
 
-**Why pnpm and not npm?** It's faster, uses less disk space, and is stricter about dependencies. The scripts and hooks assume it; switching means editing them.
+**Why `--no-ff`?** Every feature, release, and hotfix becomes one merge commit: the history shows what shipped together, and one `git revert -m 1` undoes it.
 
-**Can I use a database other than MongoDB or Postgres?** Yes. Run `/rafi:add-stack MySQL` (or any name) and choose "database" when asked.
+**Can I skip E2E and Lighthouse?** Yes: leave out the `test:e2e` and `lighthouse` scripts. CI skips E2E without a Playwright config.
 
-**Can I use a library that isn't in the catalog?** Yes. Run `/rafi:add-capability <concern> <library>`. See 8.4.
+**Another database or library?** `/rafi:add-stack <name>` or `/rafi:add-capability <concern> <library>`.
 
-**Can I skip the browser and speed tests?** Yes. Don't add the `test:e2e` and `lighthouse` scripts, or remove them. `pnpm check` doesn't depend on them.
-
-**What does `/clear` do?** Starts a fresh conversation. Use it between tasks so old context doesn't confuse Claude.
-
-**Where does my code live?** In your project folder, and on GitHub once you push. Claude edits the files on your computer.
-
-**How do I remove the plugin?** `claude plugin uninstall rafi@rafi-tools`, or pause it with `claude plugin disable rafi@rafi-tools`.
-
-**Does this work in VS Code?** Yes. It's the same Claude Code, so the same commands work in its terminal.
+**Remove the plugin?** `claude plugin uninstall rafi@rafi-tools` (or `disable` to pause).
 
 ## 16. Known caveats
 
-- gitleaks' staged-files scan has a reported bug (issue #2281) that can miss a secret. There is no second scan on GitHub, so glance at your diff for keys before pushing.
-- Nothing checks Dependabot pull requests automatically. Test them locally (8.9) before merging.
-- The Stop hook, the audits, and plugin loading were tested with scripts and a dry-run project, not yet over a long real project. Watch them in your first real project.
-- `CODEOWNERS` and `.claude/settings.json` mention `therafiniac`. Change both if your GitHub username changes.
+- gitleaks' staged-files scan can miss a secret (issue #2281). CI scans full history as a second line, after the push; glance at diffs before pushing anyway.
+- CI checks Dependabot PRs, but green doesn't prove a major upgrade safe: use `/rafi:deps`.
+- Actions are pinned to commit SHAs and updated by Dependabot. The gitleaks version and checksum in `ci.yml` are pinned by hand: update both together.
+- `branch.<name>.mergeOptions --no-ff` is local git config set by `pnpm run prepare`; a fresh clone needs `pnpm install` before merging.
+- `CODEOWNERS` and `.claude/settings.json` reference `therafiniac`. Change both if the username changes.
